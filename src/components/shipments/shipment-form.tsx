@@ -54,6 +54,7 @@ export function ShipmentForm({ buyers, shipment }: Props) {
       port_of_discharge: shipment?.port_of_discharge ?? "",
       etd: shipment?.etd ?? "",
       lc_no: shipment?.lc_no ?? "",
+      payment_terms: shipment?.payment_terms ?? "",
       memo: shipment?.memo ?? "",
     },
   });
@@ -229,6 +230,19 @@ export function ShipmentForm({ buyers, shipment }: Props) {
                   <FormLabel>L/C 번호</FormLabel>
                   <FormControl>
                     <Input placeholder="신용장 거래 시 입력" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="payment_terms"
+              render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>결제조건 (서류 공통)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="예: T/T 30 days after B/L date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

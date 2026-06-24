@@ -6,7 +6,7 @@ import { NavLinks } from "@/components/app-shell/nav-links";
 /** Desktop sidebar. Hidden below lg; the header renders a Sheet on mobile. */
 export function Sidebar({ workspaceName }: { workspaceName: string }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r bg-card lg:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r bg-card lg:flex print:hidden">
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">

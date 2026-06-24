@@ -31,8 +31,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar workspaceName={workspace.name} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader workspaceName={workspace.name} email={user.email ?? ""} role={member.role} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-6xl space-y-6">{children}</div>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 print:p-0">
+          <div className="mx-auto w-full max-w-6xl space-y-6 print:max-w-none">{children}</div>
         </main>
       </div>
     </div>

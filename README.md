@@ -123,6 +123,7 @@ supabase db reset       # 마이그레이션 전체 재적용 + 시드 재실행
 - `supabase/migrations/0002_rls.sql` — 전체 RLS 정책
 - `supabase/migrations/0003_soft_delete.sql` — buyers·shipments soft delete
 - `supabase/migrations/0004_products_soft_delete.sql` — products soft delete
+- `supabase/migrations/0005_items_cbm_payment_terms.sql` — 품목 CBM·서류 결제조건
 - `supabase/seed.sql` — 데모 데이터 (업체 1 · 바이어 1 · 제품 5 · 수출건 1 + 품목/서류/검증/대금)
 
 ### 데모 로그인

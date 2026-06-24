@@ -32,6 +32,7 @@ export const shipmentSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   lc_no: optionalText(80),
+  payment_terms: optionalText(200),
   memo: optionalText(2000),
 });
 

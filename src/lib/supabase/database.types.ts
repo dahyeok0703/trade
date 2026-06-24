@@ -168,6 +168,7 @@ export interface Database {
           lc_no: string | null;
           status: ShipmentStatus;
           memo: string | null;
+          payment_terms: string | null;
           deleted_at: string | null;
         } & Timestamps &
           WithUpdated;
@@ -184,6 +185,7 @@ export interface Database {
           lc_no?: string | null;
           status?: ShipmentStatus;
           memo?: string | null;
+          payment_terms?: string | null;
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -218,6 +220,7 @@ export interface Database {
           net_weight: number | null;
           gross_weight: number | null;
           ctns: number | null;
+          cbm: number | null;
           hs_code: string | null;
         } & Timestamps &
           WithUpdated;
@@ -234,6 +237,7 @@ export interface Database {
           net_weight?: number | null;
           gross_weight?: number | null;
           ctns?: number | null;
+          cbm?: number | null;
           hs_code?: string | null;
           created_at?: string;
           updated_at?: string;

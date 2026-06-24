@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Buyer, Shipment, ShipmentStatus } from "@/lib/supabase/database.types";
+import type { Buyer, Shipment, ShipmentItem, ShipmentStatus } from "@/lib/supabase/database.types";
 
 export type ShipmentListRow = Shipment & {
   buyer: Pick<Buyer, "id" | "name_en"> | null;
@@ -36,6 +36,18 @@ export async function getShipment(id: string): Promise<ShipmentDetail | null> {
     .maybeSingle()
     .returns<ShipmentDetail>();
   return data;
+}
+
+/** Line items for a shipment, oldest first (stable document ordering). */
+export async function getShipmentItems(shipmentId: string): Promise<ShipmentItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shipment_items")
+    .select("*")
+    .eq("shipment_id", shipmentId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
 }
 
 /** Live buyers as lightweight options for the shipment form's select. */

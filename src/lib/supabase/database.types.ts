@@ -89,6 +89,7 @@ export interface Database {
           country: string | null;
           contact: Json;
           notify_party: Json;
+          deleted_at: string | null;
         } & Timestamps &
           WithUpdated;
         Insert: {
@@ -99,6 +100,7 @@ export interface Database {
           country?: string | null;
           contact?: Json;
           notify_party?: Json;
+          deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -164,6 +166,7 @@ export interface Database {
           lc_no: string | null;
           status: ShipmentStatus;
           memo: string | null;
+          deleted_at: string | null;
         } & Timestamps &
           WithUpdated;
         Insert: {
@@ -179,6 +182,7 @@ export interface Database {
           lc_no?: string | null;
           status?: ShipmentStatus;
           memo?: string | null;
+          deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

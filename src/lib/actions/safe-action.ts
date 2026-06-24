@@ -25,9 +25,9 @@ export type ActionContext = {
   workspaceId: string;
 };
 
-export function action<TInput, TOutput>(
-  schema: z.ZodType<TInput>,
-  handler: (input: TInput) => Promise<TOutput>,
+export function action<S extends z.ZodTypeAny, TOutput>(
+  schema: S,
+  handler: (input: z.infer<S>) => Promise<TOutput>,
 ) {
   return async (raw: unknown): Promise<ActionResult<TOutput>> => {
     const parsed = schema.safeParse(raw);
@@ -45,9 +45,9 @@ export function action<TInput, TOutput>(
   };
 }
 
-export function authedAction<TInput, TOutput>(
-  schema: z.ZodType<TInput>,
-  handler: (input: TInput, ctx: ActionContext) => Promise<TOutput>,
+export function authedAction<S extends z.ZodTypeAny, TOutput>(
+  schema: S,
+  handler: (input: z.infer<S>, ctx: ActionContext) => Promise<TOutput>,
 ) {
   return async (raw: unknown): Promise<ActionResult<TOutput>> => {
     const parsed = schema.safeParse(raw);

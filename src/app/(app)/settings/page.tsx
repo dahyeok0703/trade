@@ -6,11 +6,31 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/page-header";
 import { features } from "@/lib/env";
 import { getWorkspaceContext } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { FREE_MONTHLY_EXTRACT_QUOTA } from "@/lib/pricing/cogs";
+import { formatMoney } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "설정" };
 
 export default async function SettingsPage() {
   const ctx = await getWorkspaceContext();
+
+  // AI usage this month — owner-only (RLS returns nothing for staff).
+  let usage: { input_tokens: number; output_tokens: number; doc_count: number; est_cost_krw: number } | null =
+    null;
+  if (ctx?.member.role === "owner") {
+    const supabase = await createClient();
+    const monthStart = new Date();
+    const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    const { data } = await supabase
+      .from("ai_usage")
+      .select("input_tokens, output_tokens, doc_count, est_cost_krw")
+      .eq("workspace_id", ctx.workspace.id)
+      .eq("month", monthKey)
+      .maybeSingle();
+    usage = data;
+  }
+  const isFree = (ctx?.workspace.plan ?? "free") === "free";
 
   const rows = [
     { label: "워크스페이스", value: ctx?.workspace.name ?? "-" },
@@ -58,6 +78,41 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {ctx?.member.role === "owner" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>AI 사용량 (이번 달)</CardTitle>
+            <CardDescription>
+              마진 보호를 위해 추출 호출의 토큰·추정 원가를 집계합니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">추출 횟수</span>
+              <span className="font-medium tabular-nums">
+                {usage?.doc_count ?? 0}
+                {isFree ? ` / ${FREE_MONTHLY_EXTRACT_QUOTA}건 (무료 한도)` : "건"}
+              </span>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">입력 / 출력 토큰</span>
+              <span className="font-medium tabular-nums">
+                {(usage?.input_tokens ?? 0).toLocaleString()} /{" "}
+                {(usage?.output_tokens ?? 0).toLocaleString()}
+              </span>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">추정 원가</span>
+              <span className="font-medium tabular-nums">
+                {formatMoney(usage?.est_cost_krw ?? 0, "KRW")}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

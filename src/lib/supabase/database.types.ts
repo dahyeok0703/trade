@@ -485,6 +485,19 @@ export interface Database {
         Args: { workspace_name: string; workspace_slug: string };
         Returns: string;
       };
+      record_ai_usage: {
+        Args: {
+          p_input_tokens: number;
+          p_output_tokens: number;
+          p_doc_count: number;
+          p_est_cost_krw: number;
+        };
+        Returns: number;
+      };
+      ai_extract_count_this_month: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
     };
     Enums: {
       member_role: MemberRole;

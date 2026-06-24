@@ -58,6 +58,12 @@ export const updateShipmentItemSchema = z.object({
   ...baseItem,
 });
 
+/** Bulk insert (e.g. applying reviewed AI-extracted order items). */
+export const bulkShipmentItemsSchema = z.object({
+  shipment_id: z.string().uuid(),
+  items: z.array(z.object(baseItem)).min(1, "추가할 품목이 없습니다.").max(200),
+});
+
 export type ShipmentItemInput = z.infer<typeof shipmentItemSchema>;
 
 /* Client form schema — all-string fields for clean react-hook-form typing. */

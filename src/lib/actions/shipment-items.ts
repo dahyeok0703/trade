@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import {
   shipmentItemSchema,
   updateShipmentItemSchema,
+  bulkShipmentItemsSchema,
   type ShipmentItemInput,
 } from "@/lib/validations/shipment-item";
 
@@ -63,6 +64,30 @@ export const addShipmentItemAction = authedAction(shipmentItemSchema, async (inp
   await audit(ctx, "shipment_item.added", data.id, { shipment_id });
   revalidateShipment(shipment_id);
   return { id: data.id };
+});
+
+/** Insert many reviewed items at once (used by "주문서로 채우기"). */
+export const addShipmentItemsBulkAction = authedAction(bulkShipmentItemsSchema, async (input, ctx) => {
+  await assertShipment(input.shipment_id);
+  const supabase = await createClient();
+  const rows = input.items.map((it) => ({
+    workspace_id: ctx.workspaceId,
+    shipment_id: input.shipment_id,
+    ...itemRow(it),
+  }));
+  const { error, count } = await supabase
+    .from("shipment_items")
+    .insert(rows, { count: "exact" });
+
+  if (error) throw new ActionError("품목을 추가하지 못했습니다.");
+
+  const inserted = count ?? rows.length;
+  await audit(ctx, "shipment_item.bulk_added", input.shipment_id, {
+    shipment_id: input.shipment_id,
+    count: inserted,
+  });
+  revalidateShipment(input.shipment_id);
+  return { inserted };
 });
 
 export const updateShipmentItemAction = authedAction(

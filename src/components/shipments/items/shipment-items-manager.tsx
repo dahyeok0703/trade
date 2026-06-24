@@ -29,6 +29,7 @@ import {
   deleteShipmentItemAction,
   updateShipmentItemAction,
 } from "@/lib/actions/shipment-items";
+import { OrderImportDialog } from "@/components/shipments/items/order-import-dialog";
 import { computeTotals } from "@/lib/documents";
 import { formatMoney } from "@/lib/utils";
 import type { ProductOption } from "@/lib/data/products";
@@ -78,11 +79,13 @@ export function ShipmentItemsManager({
   items,
   products,
   currency,
+  aiEnabled = false,
 }: {
   shipmentId: string;
   items: ShipmentItem[];
   products: ProductOption[];
   currency: string;
+  aiEnabled?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -186,8 +189,9 @@ export function ShipmentItemsManager({
     <div className="space-y-4">
       {/* Add / edit form */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">{editingId ? "품목 수정" : "품목 추가"}</CardTitle>
+          {aiEnabled && !editingId && <OrderImportDialog shipmentId={shipmentId} />}
         </CardHeader>
         <CardContent>
           <Form {...form}>

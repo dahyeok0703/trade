@@ -124,6 +124,7 @@ supabase db reset       # 마이그레이션 전체 재적용 + 시드 재실행
 - `supabase/migrations/0003_soft_delete.sql` — buyers·shipments soft delete
 - `supabase/migrations/0004_products_soft_delete.sql` — products soft delete
 - `supabase/migrations/0005_items_cbm_payment_terms.sql` — 품목 CBM·서류 결제조건
+- `supabase/migrations/0006_ai_usage_rpc.sql` — AI 사용량 기록·월 추출 횟수 RPC (마진 보호)
 - `supabase/seed.sql` — 데모 데이터 (업체 1 · 바이어 1 · 제품 5 · 수출건 1 + 품목/서류/검증/대금)
 
 ### 데모 로그인
@@ -150,6 +151,20 @@ supabase test db   # supabase/tests/rls_isolation.test.sql (pgTAP, 17 assertions
 타 workspace 간 읽기/쓰기 차단, staff 제한, owner 전용 읽기, anon 차단을 검증합니다.
 
 자세한 원칙은 [`CLAUDE.md`](./CLAUDE.md) 를 참고하세요.
+
+## AI 주문서 추출 (선택)
+
+바이어 PO(PDF·이미지)·주문 이메일·엑셀에서 **품목 후보를 추출**해 수출건 품목 화면의
+"주문서로 채우기"로 불러옵니다. 추출 결과는 **초안**이며 저장 전 사람이 검토·수정합니다.
+
+- **`ANTHROPIC_API_KEY` 가 없으면** AI 버튼이 숨겨지고 수동 입력만 동작합니다(앱 정상).
+- 모델: **Haiku 4.5 고정**, 저신뢰/실패 시에만 **Sonnet 1회 폴백**, 시스템 프롬프트 prompt caching.
+- 출력은 `output_config.format`(json_schema)로 **JSON 강제** + zod **안전 파싱**, 항목별 confidence
+  표시(낮으면 "확인 필요"). PDF는 텍스트 추출 후, 이미지는 vision 분기.
+- **마진 보호**: 호출마다 토큰을 `record_ai_usage()`로 `ai_usage`에 적재하고
+  `src/lib/pricing/cogs.ts`(단가·환율)로 원가(KRW)를 추정. **free 플랜은 월 추출 횟수 쿼터**가
+  있고 초과 시 수동 입력/업그레이드를 안내합니다. 사용량은 설정 화면(owner)에서 확인합니다.
+- **AI는 항목 추출만** 합니다 — 가격 적정성·규정 준수·거래 가부 등 판단은 하지 않습니다.
 
 ## 디렉터리
 

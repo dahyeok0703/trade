@@ -24,6 +24,7 @@ import { getShipment, getShipmentItems } from "@/lib/data/shipments";
 import { listProductOptions } from "@/lib/data/products";
 import { deleteShipmentAction } from "@/lib/actions/shipments";
 import { computeTotals } from "@/lib/documents";
+import { features } from "@/lib/env";
 import { formatDate, formatMoney } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "수출건 상세" };
@@ -154,6 +155,7 @@ export default async function ShipmentDetailPage({
             items={items}
             products={products}
             currency={shipment.currency}
+            aiEnabled={features.aiExtraction}
           />
         </TabsContent>
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { authedAction, ActionError, type ActionContext } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
+import { runAndRecordValidation } from "@/lib/validation/run";
 import { shipmentSchema } from "@/lib/validations/shipment";
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -88,6 +89,22 @@ export const updateShipmentAction = authedAction(updateShipmentSchema, async (in
 });
 
 export const updateShipmentStatusAction = authedAction(updateStatusSchema, async (input, ctx) => {
+  // Gate: a shipment can only reach "서류 준비 완료" when consistency checks pass.
+  // (Forced override goes through markDocumentsReadyAction in the 일치검증 탭.)
+  if (input.status === "documents_ready") {
+    const report = await runAndRecordValidation({
+      workspaceId: ctx.workspaceId,
+      actorMemberId: ctx.member.id,
+      shipmentId: input.id,
+    });
+    if (!report.passed) {
+      throw new ActionError(
+        "일치검증에 실패한 항목이 있어 '서류 준비 완료'로 전환할 수 없습니다. 일치검증 탭에서 확인 후 진행하세요.",
+        "VALIDATION_REQUIRED",
+      );
+    }
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("shipments")

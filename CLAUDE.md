@@ -63,6 +63,9 @@ src/
     auth/              session, bootstrap(workspace 자동 생성)
     actions/           safe-action 래퍼({ok,data,error}), auth 액션
     validations/       zod 스키마
+    validation/        서류 일치검증 규칙 엔진(규칙 기반, AI 아님)
+    documents.ts       인보이스·패킹리스트 공통 문서 모델
+    pricing/ · ai/     AI 추출 원가(COGS) · 추출 모듈
 supabase/
   migrations/
     0001_schema.sql    테이블·enum·인덱스·트리거·헬퍼·bootstrap_workspace()

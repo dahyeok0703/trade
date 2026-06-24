@@ -4,12 +4,10 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BadgeDollarSign,
-  CheckCircle2,
   ClipboardCheck,
   FileText,
   Package,
   Pencil,
-  TriangleAlert,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +18,9 @@ import { EmptyState } from "@/components/empty-state";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { ShipmentStatusSelect } from "@/components/shipments/shipment-status-select";
 import { ShipmentItemsManager } from "@/components/shipments/items/shipment-items-manager";
+import { ValidationPanel } from "@/components/shipments/validation/validation-panel";
 import { getShipment, getShipmentItems } from "@/lib/data/shipments";
+import { getLatestValidation } from "@/lib/data/validations";
 import { listProductOptions } from "@/lib/data/products";
 import { deleteShipmentAction } from "@/lib/actions/shipments";
 import { computeTotals } from "@/lib/documents";
@@ -44,23 +44,16 @@ export default async function ShipmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [shipment, items, products] = await Promise.all([
+  const [shipment, items, products, latestValidation] = await Promise.all([
     getShipment(id),
     getShipmentItems(id),
     listProductOptions(),
+    getLatestValidation(id),
   ]);
   if (!shipment) notFound();
 
   const totals = computeTotals(items);
   const hasItems = items.length > 0;
-
-  // Rule-based consistency checks (deterministic — no AI judgement).
-  const grossLtNet = items.filter(
-    (it) => it.gross_weight != null && it.net_weight != null && it.gross_weight < it.net_weight,
-  );
-  const missingPacking = items.filter(
-    (it) => it.net_weight == null || it.gross_weight == null || it.ctns == null,
-  );
 
   return (
     <>
@@ -211,50 +204,15 @@ export default async function ShipmentDetailPage({
             <EmptyState
               icon={ClipboardCheck}
               title="검증할 품목이 없습니다"
-              description="품목을 추가하면 규칙 기반 일치검증 결과가 표시됩니다."
+              description="품목을 추가하면 규칙 기반 일치검증을 실행할 수 있습니다."
             />
           ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">규칙 기반 일치검증</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <p>
-                    인보이스와 패킹리스트는 <strong>동일한 품목 데이터</strong>에서 생성됩니다 —
-                    품명·HS코드·수량이 구조적으로 일치합니다.
-                  </p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <p>모든 라인의 금액 = 수량 × 단가로 자동 계산됩니다 (서버 검증).</p>
-                </div>
-                {grossLtNet.length > 0 ? (
-                  <div className="flex items-start gap-2 text-destructive">
-                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>
-                      총중량 &lt; 순중량인 품목 {grossLtNet.length}건: {""}
-                      {grossLtNet.map((i) => i.description_en).join(", ")}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                    <p>모든 품목에서 총중량 ≥ 순중량입니다.</p>
-                  </div>
-                )}
-                {missingPacking.length > 0 && (
-                  <div className="flex items-start gap-2 text-warning">
-                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>
-                      패킹리스트 정보(순중량·총중량·박스수)가 일부 비어 있는 품목 {""}
-                      {missingPacking.length}건이 있습니다.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ValidationPanel
+              shipmentId={shipment.id}
+              status={shipment.status}
+              initialReport={latestValidation?.result ?? null}
+              initialRunAt={latestValidation?.run_at ?? null}
+            />
           )}
         </TabsContent>
 

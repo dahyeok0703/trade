@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens — international · trustworthy · practical.
+ * Palette: navy (primary/brand) + white + teal (accent point).
+ * All values are HSL channels consumed via hsl(var(--token)).
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 35% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 35% 15%;
+
+    /* Navy */
+    --primary: 215 60% 23%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 213 30% 95%;
+    --secondary-foreground: 215 45% 22%;
+
+    --muted: 214 28% 96%;
+    --muted-foreground: 215 16% 45%;
+
+    /* Teal point */
+    --accent: 174 62% 94%;
+    --accent-foreground: 176 70% 22%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 24% 89%;
+    --input: 214 24% 89%;
+    --ring: 215 60% 30%;
+
+    /* Brand aliases */
+    --brand: 215 60% 23%;
+    --brand-foreground: 210 40% 98%;
+    --teal: 175 70% 36%;
+    --teal-foreground: 0 0% 100%;
+
+    --success: 152 56% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 28 80% 14%;
+
+    --radius: 0.625rem;
+
+    --font-sans: "Pretendard", "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  .dark {
+    --background: 215 40% 9%;
+    --foreground: 210 30% 96%;
+
+    --card: 215 38% 12%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 215 38% 12%;
+    --popover-foreground: 210 30% 96%;
+
+    --primary: 199 70% 62%;
+    --primary-foreground: 215 45% 12%;
+
+    --secondary: 215 28% 18%;
+    --secondary-foreground: 210 30% 96%;
+
+    --muted: 215 28% 18%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 176 40% 20%;
+    --accent-foreground: 174 62% 88%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 24% 22%;
+    --input: 215 24% 22%;
+    --ring: 199 70% 55%;
+
+    --brand: 199 70% 62%;
+    --brand-foreground: 215 45% 12%;
+    --teal: 175 65% 45%;
+    --teal-foreground: 215 45% 10%;
+
+    --success: 152 50% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 90% 55%;
+    --warning-foreground: 28 80% 14%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
+  }
+  /* Tabular numerals make trade data tables align cleanly. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}

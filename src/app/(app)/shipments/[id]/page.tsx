@@ -130,7 +130,7 @@ export default async function ShipmentDetailPage({
           <EmptyState
             icon={Package}
             title="품목"
-            description="이 수출건의 품목(인보이스 라인)을 추가하는 화면이 다음 단계에서 연결됩니다."
+            description="제품 마스터에서 자동완성으로 품목을 불러와 인보이스 라인을 구성하는 화면이 다음 단계에서 연결됩니다."
           />
         </TabsContent>
         <TabsContent value="documents">

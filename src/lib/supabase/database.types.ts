@@ -126,6 +126,7 @@ export interface Database {
           gross_weight: number | null;
           dimensions: string | null;
           origin_country: string | null;
+          deleted_at: string | null;
         } & Timestamps &
           WithUpdated;
         Insert: {
@@ -139,6 +140,7 @@ export interface Database {
           gross_weight?: number | null;
           dimensions?: string | null;
           origin_country?: string | null;
+          deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

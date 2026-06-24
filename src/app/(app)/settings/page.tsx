@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/page-header";
+import { ExporterInfoForm } from "@/components/settings/exporter-info-form";
+import type { ExporterInfoInput } from "@/lib/validations/workspace";
 import { features } from "@/lib/env";
 import { getWorkspaceContext } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -39,9 +41,13 @@ export default async function SettingsPage() {
     { label: "역할", value: ctx?.member.role === "owner" ? "관리자(owner)" : "직원(staff)" },
   ];
 
+  const exporterInfo = (ctx?.workspace.exporter_info ?? {}) as Partial<ExporterInfoInput>;
+
   return (
     <>
       <PageHeader title="설정" description="워크스페이스와 계정 정보를 확인합니다." />
+
+      {ctx?.member.role === "owner" && <ExporterInfoForm initial={exporterInfo} />}
 
       <Card>
         <CardHeader>

@@ -19,13 +19,15 @@ import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { ShipmentStatusSelect } from "@/components/shipments/shipment-status-select";
 import { ShipmentItemsManager } from "@/components/shipments/items/shipment-items-manager";
 import { ValidationPanel } from "@/components/shipments/validation/validation-panel";
+import { DocumentsPanel } from "@/components/shipments/documents/documents-panel";
 import { getShipment, getShipmentItems } from "@/lib/data/shipments";
 import { getLatestValidation } from "@/lib/data/validations";
+import { listIssuedDocuments } from "@/lib/data/documents";
 import { listProductOptions } from "@/lib/data/products";
 import { deleteShipmentAction } from "@/lib/actions/shipments";
 import { computeTotals } from "@/lib/documents";
 import { features } from "@/lib/env";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "수출건 상세" };
 
@@ -44,11 +46,12 @@ export default async function ShipmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [shipment, items, products, latestValidation] = await Promise.all([
+  const [shipment, items, products, latestValidation, issuedDocs] = await Promise.all([
     getShipment(id),
     getShipmentItems(id),
     listProductOptions(),
     getLatestValidation(id),
+    listIssuedDocuments(id),
   ]);
   if (!shipment) notFound();
 
@@ -152,49 +155,23 @@ export default async function ShipmentDetailPage({
           />
         </TabsContent>
 
-        {/* 서류 — both generated from the same items */}
+        {/* 서류 — standard English PDFs from the same items */}
         <TabsContent value="documents">
           {!hasItems ? (
             <EmptyState
               icon={FileText}
               title="먼저 품목을 추가하세요"
-              description="품목을 입력하면 동일한 데이터로 인보이스와 패킹리스트가 함께 생성됩니다."
+              description="품목을 입력하면 동일한 데이터로 인보이스·패킹리스트 PDF가 생성됩니다."
             />
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                같은 품목 데이터({items.length}건)에서 생성되어 두 서류가 구조적으로 일치합니다.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Link href={`/shipments/${shipment.id}/invoice`} className="group">
-                  <Card className="h-full transition-colors group-hover:border-primary/40">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <FileText className="h-4 w-4 text-teal" />
-                        Commercial Invoice
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground">
-                      금액 중심 · 총액 {formatMoney(totals.amount, shipment.currency)}
-                    </CardContent>
-                  </Card>
-                </Link>
-                <Link href={`/shipments/${shipment.id}/packing-list`} className="group">
-                  <Card className="h-full transition-colors group-hover:border-primary/40">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <FileText className="h-4 w-4 text-teal" />
-                        Packing List
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground">
-                      수량·중량·용적 중심 · {totals.ctns.toLocaleString()} CTNS ·{" "}
-                      {totals.cbm.toLocaleString()} CBM
-                    </CardContent>
-                  </Card>
-                </Link>
-              </div>
-            </div>
+            <DocumentsPanel
+              shipmentId={shipment.id}
+              currency={shipment.currency}
+              totalAmount={totals.amount}
+              totalCtns={totals.ctns}
+              totalCbm={totals.cbm}
+              issued={issuedDocs}
+            />
           )}
         </TabsContent>
 

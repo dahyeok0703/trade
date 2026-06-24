@@ -168,6 +168,20 @@ supabase test db   # supabase/tests/rls_isolation.test.sql (pgTAP, 17 assertions
 `documents_ready`로 전환되며, 경고가 있어도 확인 후 **강제 진행**할 수 있습니다. 실행 결과는
 `validations` 테이블에 이력으로 남습니다.
 
+## 수출 서류 PDF
+
+같은 품목 데이터에서 **표준 영문 PDF**를 서버에서 생성합니다(`@react-pdf/renderer`).
+
+- **Commercial Invoice** · **Packing List** · **Certificate of Origin**(참고 양식)
+- `GET /api/documents/{shipmentId}/{invoice|packing-list|certificate-of-origin}`
+  — `?dl=1` 이면 다운로드, 없으면 브라우저 인라인 미리보기
+- 수출건 상세 [서류] 탭에서 미리보기·PDF 다운로드·**발행**(이력 기록)
+- 발행 시 `trade_documents`에 `doc_no`·`issued_on`·`data_snapshot`(문서 모델 JSON) 저장
+- 설정(owner)에서 **수출자 정보·로고·서명 이미지**를 등록하면 PDF 헤더/서명에 반영됩니다
+  (이미지는 `exporter_info` jsonb에 data URL로 저장)
+- 숫자·통화는 영문 표준 포맷(그룹 구분, 2자리 소수). 서류 양식은 일반적 무역 표준을
+  따르되 **최종 사용 책임은 수출자에게** 있음을 서류·UI에 명시합니다.
+
 ## AI 주문서 추출 (선택)
 
 바이어 PO(PDF·이미지)·주문 이메일·엑셀에서 **품목 후보를 추출**해 수출건 품목 화면의

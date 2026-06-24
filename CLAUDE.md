@@ -64,9 +64,41 @@ src/
     actions/           safe-action 래퍼({ok,data,error}), auth 액션
     validations/       zod 스키마
 supabase/
-  migrations/          스키마 + RLS + bootstrap_workspace()
+  migrations/
+    0001_schema.sql    테이블·enum·인덱스·트리거·헬퍼·bootstrap_workspace()
+    0002_rls.sql       전체 RLS 정책
+  seed.sql             데모 시드 (데모 계정 demo@tradedocs.test / demo12345)
+  tests/               RLS 격리 pgTAP 테스트 (supabase test db)
   config.toml          로컬 개발 설정
 ```
+
+## 데이터 모델 (스키마)
+
+테넌트 루트 `workspaces` 아래 모든 테이블이 `workspace_id` 를 가집니다.
+자식 테이블도 `workspace_id` 를 **비정규화**해 RLS가 부모로 조인하지 않고
+단일·인덱스 기반 검사로 끝나도록 합니다.
+
+- **workspaces** — name, slug, exporter_info(jsonb 영문 상호·주소·연락처), plan(free/pro), trial_ends_at, billing_customer_id
+- **members** — user_id, name, role(owner/staff), status(active/invited/suspended)
+- **buyers** — name_en, address_en, country, contact(jsonb), notify_party(jsonb)
+- **products** — name_en, hs_code(참고용), unit, unit_price_usd, net/gross_weight, dimensions, origin_country
+- **shipments** — buyer_id, ref_no, incoterms, currency, port_of_loading/discharge, etd, lc_no, status(draft/documents_ready/shipped/done), memo
+- **shipment_items** — shipment_id, product_id, description_en, qty, unit, unit_price, amount, net/gross_weight, ctns, hs_code
+- **trade_documents** — shipment_id, doc_type, doc_no, issued_on, file_path, data_snapshot(jsonb)
+- **validations** — shipment_id, run_at, result(jsonb 불일치 목록), passed
+- **payments** — shipment_id, term(TT/LC), amount, due_on, paid_on, status
+- **ai_usage** — month, input/output_tokens, doc_count, est_cost_krw (owner 읽기 전용, 마진 보호)
+- **audit_logs** — actor_member_id, action, target_table, target_id, meta (owner 읽기 / member append)
+- **billing_events** — type, raw (owner 읽기 전용)
+
+### RLS 규칙 (`is_workspace_member()` / `is_workspace_owner()`)
+
+- 운영 테이블(buyers·products·shipments·shipment_items·trade_documents·validations·payments):
+  활성 멤버는 전체 CRUD.
+- workspaces: 멤버 읽기 / **owner 수정**. members: 멤버 읽기 / **owner 관리**.
+- ai_usage·billing_events·audit_logs: **owner 읽기 전용** (시스템 쓰기는 service-role).
+- 헬퍼는 SECURITY DEFINER 라 members 정책을 재귀시키지 않습니다.
+- 새 테넌트 테이블 추가 시 **반드시** `workspace_id` + RLS 정책을 함께 추가합니다.
 
 ## 규약
 
@@ -88,7 +120,8 @@ pnpm dev          # 개발 서버
 pnpm build        # 프로덕션 빌드
 pnpm typecheck    # tsc --noEmit
 pnpm lint         # eslint
-supabase start    # 로컬 Supabase
-supabase db reset # 마이그레이션 재적용
+supabase start    # 로컬 Supabase (마이그레이션 + 시드 자동 적용)
+supabase db reset # 마이그레이션 재적용 + 시드 재실행
+supabase test db  # RLS 격리 통합테스트 (pgTAP)
 pnpm db:types     # DB 타입 재생성 (supabase 로컬 실행 중일 때)
 ```

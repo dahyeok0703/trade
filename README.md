@@ -125,6 +125,7 @@ supabase db reset       # 마이그레이션 전체 재적용 + 시드 재실행
 - `supabase/migrations/0004_products_soft_delete.sql` — products soft delete
 - `supabase/migrations/0005_items_cbm_payment_terms.sql` — 품목 CBM·서류 결제조건
 - `supabase/migrations/0006_ai_usage_rpc.sql` — AI 사용량 기록·월 추출 횟수 RPC (마진 보호)
+- `supabase/migrations/0007_shipment_tracking.sql` — 선적 추적(ETA·B/L)
 - `supabase/seed.sql` — 데모 데이터 (업체 1 · 바이어 1 · 제품 5 · 수출건 1 + 품목/서류/검증/대금)
 
 ### 데모 로그인
@@ -167,6 +168,15 @@ supabase test db   # supabase/tests/rls_isolation.test.sql (pgTAP, 17 assertions
 수출건 상세 [일치검증] 탭에서 **검증 실행** → 통과/실패가 한눈에. **검증을 통과해야**
 `documents_ready`로 전환되며, 경고가 있어도 확인 후 **강제 진행**할 수 있습니다. 실행 결과는
 `validations` 테이블에 이력으로 남습니다.
+
+## 선적 추적 · 대금 · 대시보드
+
+- **선적 추적**: 수출건 상태(draft → documents_ready → shipped → done), ETD/ETA, B/L 번호·메모
+- **대금**(수출건 [대금] 탭): T/T·L/C 구분·금액·만기·입금일 → 받을 대금/연체 자동 집계
+  (연체 = 미입금 & 만기 경과). 통화별로 합산합니다.
+- **대시보드**(`/dashboard`): 진행 중 수출건·이번 달 ETD·받을 대금/연체, 서류 미검증·불일치
+  경고 리스트, 바이어별·월별 수출 금액 차트(recharts). 모바일 대응.
+- ⚠️ **금액·일정은 입력값 기반 참고치이며 공식 통관·회계를 대체하지 않습니다.**
 
 ## 수출 서류 PDF
 

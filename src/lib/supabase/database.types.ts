@@ -169,6 +169,8 @@ export interface Database {
           status: ShipmentStatus;
           memo: string | null;
           payment_terms: string | null;
+          eta: string | null;
+          bl_no: string | null;
           deleted_at: string | null;
         } & Timestamps &
           WithUpdated;
@@ -186,6 +188,8 @@ export interface Database {
           status?: ShipmentStatus;
           memo?: string | null;
           payment_terms?: string | null;
+          eta?: string | null;
+          bl_no?: string | null;
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;

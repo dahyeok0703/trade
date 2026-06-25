@@ -31,7 +31,13 @@ export const shipmentSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "날짜 형식이 올바르지 않습니다.")
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  eta: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "날짜 형식이 올바르지 않습니다.")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   lc_no: optionalText(80),
+  bl_no: optionalText(80),
   payment_terms: optionalText(200),
   memo: optionalText(2000),
 });

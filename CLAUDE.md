@@ -74,6 +74,7 @@ supabase/
     0004_products_soft_delete.sql  products soft delete(deleted_at)
     0005_items_cbm_payment_terms.sql  shipment_items.cbm·shipments.payment_terms
     0006_ai_usage_rpc.sql  record_ai_usage()·ai_extract_count_this_month() (마진 보호)
+    0007_shipment_tracking.sql  shipments.eta·bl_no
   seed.sql             데모 시드 (데모 계정 demo@tradedocs.test / demo12345)
   tests/               RLS 격리 pgTAP 테스트 (supabase test db)
   config.toml          로컬 개발 설정

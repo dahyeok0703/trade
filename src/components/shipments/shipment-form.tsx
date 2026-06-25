@@ -53,7 +53,9 @@ export function ShipmentForm({ buyers, shipment }: Props) {
       port_of_loading: shipment?.port_of_loading ?? "",
       port_of_discharge: shipment?.port_of_discharge ?? "",
       etd: shipment?.etd ?? "",
+      eta: shipment?.eta ?? "",
       lc_no: shipment?.lc_no ?? "",
+      bl_no: shipment?.bl_no ?? "",
       payment_terms: shipment?.payment_terms ?? "",
       memo: shipment?.memo ?? "",
     },
@@ -214,7 +216,20 @@ export function ShipmentForm({ buyers, shipment }: Props) {
               name="etd"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ETD</FormLabel>
+                  <FormLabel>ETD (출항 예정)</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="eta"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ETA (도착 예정)</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -230,6 +245,19 @@ export function ShipmentForm({ buyers, shipment }: Props) {
                   <FormLabel>L/C 번호</FormLabel>
                   <FormControl>
                     <Input placeholder="신용장 거래 시 입력" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bl_no"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>B/L 번호</FormLabel>
+                  <FormControl>
+                    <Input placeholder="선하증권 번호" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

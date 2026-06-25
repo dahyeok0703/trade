@@ -38,7 +38,9 @@ function toRow(input: z.infer<typeof shipmentSchema>) {
     port_of_loading: input.port_of_loading ?? null,
     port_of_discharge: input.port_of_discharge ?? null,
     etd: input.etd ?? null,
+    eta: input.eta ?? null,
     lc_no: input.lc_no ?? null,
+    bl_no: input.bl_no ?? null,
     payment_terms: input.payment_terms ?? null,
     memo: input.memo ?? null,
   };

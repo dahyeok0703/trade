@@ -20,9 +20,11 @@ import { ShipmentStatusSelect } from "@/components/shipments/shipment-status-sel
 import { ShipmentItemsManager } from "@/components/shipments/items/shipment-items-manager";
 import { ValidationPanel } from "@/components/shipments/validation/validation-panel";
 import { DocumentsPanel } from "@/components/shipments/documents/documents-panel";
+import { PaymentsPanel } from "@/components/shipments/payments/payments-panel";
 import { getShipment, getShipmentItems } from "@/lib/data/shipments";
 import { getLatestValidation } from "@/lib/data/validations";
 import { listIssuedDocuments } from "@/lib/data/documents";
+import { getPayments } from "@/lib/data/payments";
 import { listProductOptions } from "@/lib/data/products";
 import { deleteShipmentAction } from "@/lib/actions/shipments";
 import { computeTotals } from "@/lib/documents";
@@ -46,12 +48,13 @@ export default async function ShipmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [shipment, items, products, latestValidation, issuedDocs] = await Promise.all([
+  const [shipment, items, products, latestValidation, issuedDocs, payments] = await Promise.all([
     getShipment(id),
     getShipmentItems(id),
     listProductOptions(),
     getLatestValidation(id),
     listIssuedDocuments(id),
+    getPayments(id),
   ]);
   if (!shipment) notFound();
 
@@ -113,8 +116,10 @@ export default async function ShipmentDetailPage({
           <Field label="결제조건" value={shipment.payment_terms} />
           <Field label="선적항 (POL)" value={shipment.port_of_loading} />
           <Field label="도착항 (POD)" value={shipment.port_of_discharge} />
-          <Field label="ETD" value={formatDate(shipment.etd)} />
+          <Field label="ETD (출항)" value={formatDate(shipment.etd)} />
+          <Field label="ETA (도착)" value={formatDate(shipment.eta)} />
           <Field label="L/C 번호" value={shipment.lc_no} />
+          <Field label="B/L 번호" value={shipment.bl_no} />
           {shipment.memo && (
             <div className="sm:col-span-2 lg:col-span-3">
               <Field label="메모" value={<span className="whitespace-pre-wrap">{shipment.memo}</span>} />
@@ -194,10 +199,10 @@ export default async function ShipmentDetailPage({
         </TabsContent>
 
         <TabsContent value="payments">
-          <EmptyState
-            icon={BadgeDollarSign}
-            title="대금"
-            description={`결제조건: ${shipment.payment_terms ?? "미입력"} · TT·L/C 입금 추적이 다음 단계에서 연결됩니다.`}
+          <PaymentsPanel
+            shipmentId={shipment.id}
+            currency={shipment.currency}
+            payments={payments}
           />
         </TabsContent>
       </Tabs>

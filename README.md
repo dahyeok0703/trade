@@ -3,8 +3,9 @@
 소규모 수출자를 위한 B2B SaaS. 인보이스·패킹리스트 등 수출 서류를 빠르고 정확하게
 만듭니다. UI는 한국어, 생성되는 서류 출력물은 영문(무역 표준)입니다.
 
-> 현재는 **프로덕션 품질의 골격(skeleton)** 단계입니다. 인증·멀티테넌시·앱 셸·디자인
-> 시스템·DB(RLS)까지 갖춰져 있으며, 도메인 기능은 비어 있습니다.
+> 인증·멀티테넌시(RLS)·바이어/제품/수출건 관리·서류 세트(인보이스·패킹리스트) 생성·
+> 규칙 기반 일치검증·영문 PDF 발행·AI 주문서 추출·선적/대금/대시보드·구독 결제(PortOne)·
+> 공개 랜딩/약관까지 갖춘 **출시 준비 단계**입니다. 출시 전 점검은 [`LAUNCH.md`](./LAUNCH.md) 참고.
 
 ## 스택
 
@@ -12,7 +13,33 @@
 - **Supabase** — Postgres + Auth + Storage (Row Level Security)
 - **Tailwind CSS** + **shadcn/ui** + lucide-react + sonner
 - **react-hook-form** + **zod**
+- **@react-pdf/renderer** (영문 PDF) · **recharts** (대시보드 차트) · **xlsx**(엑셀)
+- **Anthropic**(AI 항목 추출, 선택) · **PortOne**(구독 결제, 선택)
 - **pnpm**
+
+## 5분 배포 (프로덕션)
+
+로컬 없이도 클라우드 3종으로 바로 띄울 수 있습니다.
+
+1. **Supabase 프로젝트 생성** — [supabase.com](https://supabase.com)에서 새 프로젝트를
+   만들고 `Settings → API`에서 **Project URL**, **anon key**, **service_role key**를 복사합니다.
+2. **마이그레이션 적용** — 로컬에서 프로젝트를 연결하고 푸시합니다(스키마+RLS 전체 반영):
+   ```bash
+   supabase link --project-ref <your-project-ref>
+   supabase db push        # supabase/migrations/0001~0008 적용
+   ```
+   (대시보드 SQL Editor에 `supabase/migrations/*.sql`를 순서대로 붙여넣어도 됩니다.
+   데모 데이터가 필요 없으면 `seed.sql`은 적용하지 마세요.)
+3. **키 3종 + 배포** — [Vercel](https://vercel.com)에 이 저장소를 임포트하고 환경변수에
+   최소 3종을 넣으면 동작합니다:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+
+   `NEXT_PUBLIC_APP_URL`에 배포 도메인을 넣고(예: `https://app.example.com`), Supabase
+   `Authentication → URL Configuration`의 **Site URL/Redirect URLs**에 같은 도메인을 등록하면
+   이메일 인증 링크가 올바르게 동작합니다. AI 추출·결제·크론은 아래 선택 키를 추가하면
+   켜집니다(없으면 우아하게 비활성화). 자세한 체크리스트는 [`LAUNCH.md`](./LAUNCH.md).
 
 ## 빠른 시작 (로컬)
 
@@ -73,6 +100,7 @@ owner로 등록됩니다. (로컬 설정은 이메일 확인이 꺼져 있어 �
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | 선택 | 클라이언트 | PortOne 채널 키 |
 | `PORTONE_API_SECRET` | 선택 | 서버 전용 | 정기결제 API 시크릿. 없으면 결제가 "준비중"으로 비활성화됨 |
 | `PORTONE_WEBHOOK_SECRET` | 선택 | 서버 전용 | 웹훅 서명 검증 시크릿(`whsec_…`) |
+| `CRON_SECRET` | 선택 | 서버 전용 | 크론(ETD/대금 알림) 인증 시크릿. 없으면 크론 라우트 비활성(503) |
 
 > 환경변수는 `src/lib/env.ts` 에서 zod로 검증됩니다. 필수 값이 없으면 시작 시 명확한
 > 오류를 던집니다. 선택 키가 없으면 관련 기능이 비활성화됩니다.
@@ -231,6 +259,17 @@ supabase test db   # supabase/tests/rls_isolation.test.sql (pgTAP, 17 assertions
 - **`PORTONE_API_SECRET` 가 없으면** 결제가 **"준비중"으로 비활성화**되고 나머지 앱은
   정상 동작합니다. `billing_key`는 결제 수단 자격증명이라 **클라이언트에 절대 노출하지
   않습니다**.
+
+## 공개 페이지 · SEO · 크론
+
+- **랜딩 `/`**: 히어로 + 기능(서류 세트 자동·일치 검증·AI 추출) + 요금제 + CTA.
+- **요금제 `/pricing`**, **법적 고지** `/terms`·`/privacy`·`/refund`
+  (⚠️ 플레이스홀더 — 출시 전 **법률 검토 필요**, HS코드·통관은 관세사 영역 면책 명시).
+- **SEO**: `app/layout.tsx`의 `metadataBase`·OpenGraph·Twitter 카드, 빌드 시 생성되는
+  동적 OG 이미지(`app/opengraph-image.tsx`), `robots.txt`·`sitemap.xml`(앱·API 라우트는 noindex).
+- **크론**: `/api/cron/notify`가 임박 ETD·연체/임박 대금을 집계합니다. `vercel.json`에 매일
+  실행으로 등록되어 있고 `CRON_SECRET`로 보호됩니다(미설정 시 비활성). 알림 발송 채널은
+  미연동 상태로, 현재는 다이제스트를 로그·JSON으로 반환합니다(이메일 제공자 연동 시 발송).
 
 ## 디렉터리
 

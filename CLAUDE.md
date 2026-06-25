@@ -51,12 +51,18 @@ src/
   app/
     (auth)/            로그인·회원가입·비번재설정 (split 레이아웃)
     (app)/             인증 보호 영역 (앱 셸: 사이드바 + 헤더)
+    (legal)/           약관·개인정보·환불정책 (플레이스홀더·법률 검토 필요)
+    page.tsx           공개 랜딩(히어로·기능·요금제·CTA)
+    pricing/           공개 요금제 페이지
+    opengraph-image / robots / sitemap   SEO 기본 + 동적 OG 이미지
+    api/cron/notify/   ETD·대금 알림 크론(CRON_SECRET 보호, vercel.json 등록)
     auth/confirm/      이메일 링크(OTP) 확인 라우트 핸들러
     error.tsx          전역 에러 바운더리
     loading.tsx        전역 로딩 스켈레톤
   components/
     ui/                shadcn 프리미티브
     auth/              인증 폼 (client)
+    public/            공개 페이지 헤더·푸터·법적 고지 셸
     app-shell/         사이드바·헤더·네비게이션
   lib/
     env.ts             zod 검증 환경변수 + features 플래그

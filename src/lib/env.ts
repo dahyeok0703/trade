@@ -27,6 +27,9 @@ const serverSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   PORTONE_API_SECRET: z.string().min(1).optional(),
   PORTONE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Shared secret for scheduled (cron) endpoints. When absent, cron routes are
+  // disabled so they cannot be triggered publicly.
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 // NEXT_PUBLIC_* must be referenced statically for Next.js to inline them.
@@ -48,6 +51,9 @@ function getServerEnv() {
     cachedServerEnv = serverSchema.parse({
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+      PORTONE_API_SECRET: process.env.PORTONE_API_SECRET,
+      PORTONE_WEBHOOK_SECRET: process.env.PORTONE_WEBHOOK_SECRET,
+      CRON_SECRET: process.env.CRON_SECRET,
     });
   }
   return cachedServerEnv;
@@ -66,6 +72,9 @@ export const env = {
   },
   get PORTONE_WEBHOOK_SECRET() {
     return getServerEnv().PORTONE_WEBHOOK_SECRET;
+  },
+  get CRON_SECRET() {
+    return getServerEnv().CRON_SECRET;
   },
 };
 

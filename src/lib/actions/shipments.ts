@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authedAction, ActionError, type ActionContext } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
 import { runAndRecordValidation } from "@/lib/validation/run";
+import { assertCanCreateShipment } from "@/lib/billing/gate";
 import { shipmentSchema } from "@/lib/validations/shipment";
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -49,6 +50,7 @@ function toRow(input: z.infer<typeof shipmentSchema>) {
 export const createShipmentAction = authedAction(shipmentSchema, async (input, ctx) => {
   await assertBuyerInWorkspace(input.buyer_id);
   const supabase = await createClient();
+  await assertCanCreateShipment(supabase, ctx.workspaceId);
   const { data, error } = await supabase
     .from("shipments")
     .insert({ workspace_id: ctx.workspaceId, ...toRow(input) })

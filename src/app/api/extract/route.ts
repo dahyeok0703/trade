@@ -6,7 +6,9 @@ import { createAnthropic } from "@/lib/ai/client";
 import { prepareInput, runExtraction, ExtractionError } from "@/lib/ai/extract";
 import { matchExtraction } from "@/lib/ai/match";
 import { listProductOptions } from "@/lib/data/products";
-import { estimateCostKrw, FREE_MONTHLY_EXTRACT_QUOTA } from "@/lib/pricing/cogs";
+import { estimateCostKrw } from "@/lib/pricing/cogs";
+import { planLimits } from "@/lib/billing/plans";
+import type { WorkspacePlan } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -40,17 +42,18 @@ export async function POST(req: NextRequest) {
     .select("plan")
     .eq("id", member.workspace_id)
     .maybeSingle();
-  const plan = workspace?.plan ?? "free";
+  const plan = (workspace?.plan ?? "free") as WorkspacePlan;
+  const aiQuota = planLimits(plan).aiExtractionsPerMonth;
 
-  if (plan === "free") {
-    const { data: used } = await supabase.rpc("ai_extract_count_this_month");
-    if ((used ?? 0) >= FREE_MONTHLY_EXTRACT_QUOTA) {
-      return fail(
-        429,
-        `무료 플랜 월 추출 한도(${FREE_MONTHLY_EXTRACT_QUOTA}건)를 초과했습니다. 수동 입력을 사용하거나 Pro 플랜으로 업그레이드해 주세요.`,
-        "QUOTA_EXCEEDED",
-      );
-    }
+  const { data: used } = await supabase.rpc("ai_extract_count_this_month");
+  if ((used ?? 0) >= aiQuota) {
+    return fail(
+      429,
+      plan === "free"
+        ? `무료 플랜 월 추출 한도(${aiQuota}회)를 초과했습니다. 수동 입력을 사용하거나 Pro로 업그레이드해 주세요.`
+        : `이번 달 추출 한도(${aiQuota}회)를 초과했습니다.`,
+      "QUOTA_EXCEEDED",
+    );
   }
 
   // ── Read input (file or pasted text) ───────────────────────────────────────

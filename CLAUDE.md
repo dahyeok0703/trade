@@ -41,6 +41,7 @@
 - **Supabase**: Postgres + Auth + Storage
 - **Tailwind CSS** + **shadcn/ui** (new-york), lucide-react, **sonner** 토스트
 - **react-hook-form** + **zod** (검증)
+- **PortOne(포트원) V2**: 빌링키 정기결제 (어댑터로 분리, 키 없으면 "준비중" 비활성)
 - **pnpm**
 
 ## 프로젝트 구조
@@ -66,6 +67,8 @@ src/
     validation/        서류 일치검증 규칙 엔진(규칙 기반, AI 아님)
     documents.ts       인보이스·패킹리스트 공통 문서 모델
     pricing/ · ai/     AI 추출 원가(COGS) · 추출 모듈
+    billing/           구독 결제: plans(플랜 한도·가격) · gate(기능 게이팅) ·
+                       PortOne 어댑터(types/portone/index) · events(웹훅 멱등 기록)
 supabase/
   migrations/
     0001_schema.sql    테이블·enum·인덱스·트리거·헬퍼·bootstrap_workspace()
@@ -75,6 +78,7 @@ supabase/
     0005_items_cbm_payment_terms.sql  shipment_items.cbm·shipments.payment_terms
     0006_ai_usage_rpc.sql  record_ai_usage()·ai_extract_count_this_month() (마진 보호)
     0007_shipment_tracking.sql  shipments.eta·bl_no
+    0008_subscriptions.sql  subscriptions(빌링키 정기결제)·billing_events.event_id(웹훅 멱등 unique)
   seed.sql             데모 시드 (데모 계정 demo@tradedocs.test / demo12345)
   tests/               RLS 격리 pgTAP 테스트 (supabase test db)
   config.toml          로컬 개발 설정
@@ -97,7 +101,8 @@ supabase/
 - **payments** — shipment_id, term(TT/LC), amount, due_on, paid_on, status
 - **ai_usage** — month, input/output_tokens, doc_count, est_cost_krw (owner 읽기 전용, 마진 보호)
 - **audit_logs** — actor_member_id, action, target_table, target_id, meta (owner 읽기 / member append)
-- **billing_events** — type, raw (owner 읽기 전용)
+- **billing_events** — type, raw, event_id(웹훅 멱등 unique) (owner 읽기 전용)
+- **subscriptions** — workspace_id(unique), provider, plan, status, billing_key(서버 전용·클라이언트 노출 금지), card_brand/last4, current_period_end, cancel_at_period_end (owner 전용)
 
 ### RLS 규칙 (`is_workspace_member()` / `is_workspace_owner()`)
 

@@ -456,18 +456,62 @@ export interface Database {
           workspace_id: string;
           type: string;
           raw: Json;
+          event_id: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
           workspace_id: string;
           type: string;
           raw?: Json;
+          event_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["billing_events"]["Insert"]>;
         Relationships: [
           {
             foreignKeyName: "billing_events_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          provider: string;
+          plan: WorkspacePlan;
+          status: string;
+          billing_key: string | null;
+          customer_key: string | null;
+          card_brand: string | null;
+          card_last4: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+        } & Timestamps &
+          WithUpdated;
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          provider?: string;
+          plan?: WorkspacePlan;
+          status?: string;
+          billing_key?: string | null;
+          customer_key?: string | null;
+          card_brand?: string | null;
+          card_last4?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["subscriptions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_workspace_id_fkey";
             columns: ["workspace_id"];
             referencedRelation: "workspaces";
             referencedColumns: ["id"];
@@ -530,3 +574,4 @@ export type Payment = Tables["payments"]["Row"];
 export type AiUsage = Tables["ai_usage"]["Row"];
 export type AuditLog = Tables["audit_logs"]["Row"];
 export type BillingEvent = Tables["billing_events"]["Row"];
+export type Subscription = Tables["subscriptions"]["Row"];

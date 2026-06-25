@@ -10,13 +10,19 @@ import {
   CertificateOfOriginPdf,
   type Branding,
 } from "@/components/documents/pdf/templates";
+import { planLimits } from "@/lib/billing/plans";
 import type { TradeDocType } from "@/lib/supabase/database.types";
 
 type DocConfig = {
   docType: TradeDocType;
   prefix: string;
   label: string;
-  render: (props: { model: ReturnType<typeof buildDocumentModel>; docNo: string; branding: Branding }) => React.ReactElement;
+  render: (props: {
+    model: ReturnType<typeof buildDocumentModel>;
+    docNo: string;
+    branding: Branding;
+    watermark?: boolean;
+  }) => React.ReactElement;
 };
 
 /** URL slug → document config. */
@@ -74,8 +80,9 @@ export async function renderShipmentPdf(
   const exporter = (inputs.workspace.exporter_info ?? {}) as Record<string, string>;
   const branding: Branding = { logo: exporter.logo, signature: exporter.signature };
   const docNo = `${cfg.prefix}-${inputs.shipment.ref_no}`;
+  const watermark = planLimits(inputs.workspace.plan).documentWatermark;
 
-  const buffer = await renderToBuffer(cfg.render({ model, docNo, branding }));
+  const buffer = await renderToBuffer(cfg.render({ model, docNo, branding, watermark }));
 
   return { buffer, docNo, filename: `${docNo}.pdf`, docType: cfg.docType, snapshot: model };
 }

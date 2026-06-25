@@ -69,6 +69,10 @@ owner로 등록됩니다. (로컬 설정은 이메일 확인이 꺼져 있어 �
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | 클라이언트 | Supabase anon 키 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 선택 | 서버 전용 | RLS 우회용 관리자 키. 클라이언트에 절대 노출 금지 |
 | `ANTHROPIC_API_KEY` | 선택 | 서버 전용 | AI 항목 추출용. 없으면 해당 기능이 우아하게 비활성화됨 |
+| `NEXT_PUBLIC_PORTONE_STORE_ID` | 선택 | 클라이언트 | PortOne 상점 ID (빌링키 발급용) |
+| `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | 선택 | 클라이언트 | PortOne 채널 키 |
+| `PORTONE_API_SECRET` | 선택 | 서버 전용 | 정기결제 API 시크릿. 없으면 결제가 "준비중"으로 비활성화됨 |
+| `PORTONE_WEBHOOK_SECRET` | 선택 | 서버 전용 | 웹훅 서명 검증 시크릿(`whsec_…`) |
 
 > 환경변수는 `src/lib/env.ts` 에서 zod로 검증됩니다. 필수 값이 없으면 시작 시 명확한
 > 오류를 던집니다. 선택 키가 없으면 관련 기능이 비활성화됩니다.
@@ -205,6 +209,28 @@ supabase test db   # supabase/tests/rls_isolation.test.sql (pgTAP, 17 assertions
   `src/lib/pricing/cogs.ts`(단가·환율)로 원가(KRW)를 추정. **free 플랜은 월 추출 횟수 쿼터**가
   있고 초과 시 수동 입력/업그레이드를 안내합니다. 사용량은 설정 화면(owner)에서 확인합니다.
 - **AI는 항목 추출만** 합니다 — 가격 적정성·규정 준수·거래 가부 등 판단은 하지 않습니다.
+
+## 구독 결제 (PortOne · 선택)
+
+공개 가격 페이지 `/pricing` 와 앱 내 `/billing`(owner 전용)에서 **Free / Pro** 플랜을
+관리합니다. 결제는 **PortOne(포트원) V2 빌링키 정기결제**로, 프로바이더는
+`src/lib/billing/`의 **어댑터로 분리**되어 있습니다.
+
+- **플랜 한도**(`src/lib/billing/plans.ts`, 설정값): Free 는 수출건 5개·월 AI 추출 20회·월
+  검증 50회·**서류 워터마크**, Pro 는 무제한 수출건·서류 풀(워터마크 없음)·넉넉한 AI 추출·
+  검증 무제한. 한도는 Server Action에서 게이팅(`gate.ts`)하고, 워터마크는 PDF 렌더 시
+  플랜으로 결정합니다.
+- **결제 흐름**: 브라우저에서 빌링키 발급 → `subscribeAction`이 첫 회차 결제 + 다음 회차
+  예약 + `subscriptions` 적재 + `workspaces.plan='pro'` 갱신. 취소는 **기간 종료 시 해지
+  예약**(즉시 차단 아님), 재개도 지원합니다.
+- **웹훅** `/api/webhooks/portone`: **표준 웹훅 서명 검증**(HMAC-SHA256) 후
+  `billing_events.event_id` **unique로 멱등** 처리 → 결제 성공 시 기간 연장/업그레이드,
+  실패 시 `past_due`. 모든 이벤트는 `billing_events`에 기록됩니다.
+- **마진 점검**: 플랜별 AI 추출 쿼터(`plans.ts`)와 `ai_usage`·`cogs.ts` 원가를 연동해
+  플랜 마진을 확인합니다. 가격(`PRO_PRICE_KRW`)은 설정값입니다.
+- **`PORTONE_API_SECRET` 가 없으면** 결제가 **"준비중"으로 비활성화**되고 나머지 앱은
+  정상 동작합니다. `billing_key`는 결제 수단 자격증명이라 **클라이언트에 절대 노출하지
+  않습니다**.
 
 ## 디렉터리
 

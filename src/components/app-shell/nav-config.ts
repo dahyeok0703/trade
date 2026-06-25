@@ -1,5 +1,6 @@
 import {
   Boxes,
+  CreditCard,
   FileText,
   LayoutDashboard,
   Package,
@@ -21,5 +22,6 @@ export const navItems: NavItem[] = [
   { title: "제품", href: "/products", icon: Boxes },
   { title: "수출건", href: "/shipments", icon: Package },
   { title: "서류", href: "/documents", icon: FileText },
+  { title: "결제", href: "/billing", icon: CreditCard },
   { title: "설정", href: "/settings", icon: Settings },
 ];

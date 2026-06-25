@@ -7,12 +7,15 @@ import { createClient } from "@/lib/supabase/server";
 import { authedAction, ActionError } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
 import { runAndRecordValidation } from "@/lib/validation/run";
+import { assertCanRunValidation } from "@/lib/billing/gate";
 
 const idSchema = z.object({ id: z.string().uuid() });
 const readySchema = z.object({ id: z.string().uuid(), force: z.boolean().optional() });
 
 /** Run the rule-based consistency check and store the result. */
 export const runValidationAction = authedAction(idSchema, async ({ id }, ctx) => {
+  const supabase = await createClient();
+  await assertCanRunValidation(supabase, ctx.workspaceId);
   const report = await runAndRecordValidation({
     workspaceId: ctx.workspaceId,
     actorMemberId: ctx.member.id,

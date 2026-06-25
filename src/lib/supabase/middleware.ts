@@ -5,7 +5,15 @@ import { env } from "@/lib/env";
 import type { Database } from "@/lib/supabase/database.types";
 
 /** Routes under (app) require authentication. */
-const PROTECTED_PREFIXES = ["/dashboard", "/buyers", "/shipments", "/documents", "/settings"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/buyers",
+  "/products",
+  "/shipments",
+  "/documents",
+  "/billing",
+  "/settings",
+];
 /** Auth routes redirect to the dashboard when already signed in. */
 const AUTH_PREFIXES = ["/login", "/signup", "/reset-password"];
 

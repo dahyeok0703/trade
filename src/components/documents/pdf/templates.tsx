@@ -90,9 +90,25 @@ const s = StyleSheet.create({
   signImg: { height: 36, objectFit: "contain", marginBottom: 2 },
   signLine: { borderTopWidth: 1, borderTopColor: "#374151", width: "100%", marginTop: 2, paddingTop: 2, textAlign: "center", fontSize: 8 },
   disclaimer: { fontSize: 7, color: GRAY, borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 4 },
+  watermark: { position: "absolute", top: "42%", left: 0, right: 0, alignItems: "center" },
+  watermarkText: {
+    fontSize: 60,
+    fontFamily: "Helvetica-Bold",
+    color: "#9ca3af",
+    opacity: 0.18,
+    transform: "rotate(-24deg)",
+  },
 });
 
 export type Branding = { logo?: string; signature?: string };
+
+function Watermark() {
+  return (
+    <View style={s.watermark} fixed>
+      <Text style={s.watermarkText}>FREE · SAMPLE</Text>
+    </View>
+  );
+}
 
 function Party({ role, party }: { role: string; party: DocumentParty }) {
   return (
@@ -178,11 +194,22 @@ function Footer({ model, branding }: { model: DocumentModel; branding: Branding 
 
 /* ── Commercial Invoice ───────────────────────────────────────────────────── */
 
-export function InvoicePdf({ model, docNo, branding }: { model: DocumentModel; docNo: string; branding: Branding }) {
+export function InvoicePdf({
+  model,
+  docNo,
+  branding,
+  watermark,
+}: {
+  model: DocumentModel;
+  docNo: string;
+  branding: Branding;
+  watermark?: boolean;
+}) {
   const { items, totals, currency } = model;
   return (
     <Document title={`Commercial Invoice ${docNo}`}>
       <Page size="A4" style={s.page}>
+        {watermark ? <Watermark /> : null}
         <Header title="Commercial Invoice" docNo={docNo} model={model} branding={branding} />
         <Parties model={model} />
         <MetaGrid model={model} />
@@ -228,11 +255,22 @@ export function InvoicePdf({ model, docNo, branding }: { model: DocumentModel; d
 
 /* ── Packing List ─────────────────────────────────────────────────────────── */
 
-export function PackingListPdf({ model, docNo, branding }: { model: DocumentModel; docNo: string; branding: Branding }) {
+export function PackingListPdf({
+  model,
+  docNo,
+  branding,
+  watermark,
+}: {
+  model: DocumentModel;
+  docNo: string;
+  branding: Branding;
+  watermark?: boolean;
+}) {
   const { items, totals } = model;
   return (
     <Document title={`Packing List ${docNo}`}>
       <Page size="A4" style={s.page}>
+        {watermark ? <Watermark /> : null}
         <Header title="Packing List" docNo={docNo} model={model} branding={branding} />
         <Parties model={model} />
         <MetaGrid model={model} />
@@ -280,11 +318,22 @@ export function PackingListPdf({ model, docNo, branding }: { model: DocumentMode
 
 /* ── Certificate of Origin (template) ─────────────────────────────────────── */
 
-export function CertificateOfOriginPdf({ model, docNo, branding }: { model: DocumentModel; docNo: string; branding: Branding }) {
+export function CertificateOfOriginPdf({
+  model,
+  docNo,
+  branding,
+  watermark,
+}: {
+  model: DocumentModel;
+  docNo: string;
+  branding: Branding;
+  watermark?: boolean;
+}) {
   const { items } = model;
   return (
     <Document title={`Certificate of Origin ${docNo}`}>
       <Page size="A4" style={s.page}>
+        {watermark ? <Watermark /> : null}
         <Header title="Certificate of Origin" docNo={docNo} model={model} branding={branding} />
         <Parties model={model} />
         <MetaGrid model={model} />

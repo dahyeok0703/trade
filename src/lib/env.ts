@@ -17,11 +17,16 @@ const clientSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, {
     message: "NEXT_PUBLIC_SUPABASE_ANON_KEY is required",
   }),
+  // PortOne (billing) — public identifiers used by the browser SDK. Optional.
+  NEXT_PUBLIC_PORTONE_STORE_ID: z.string().optional(),
+  NEXT_PUBLIC_PORTONE_CHANNEL_KEY: z.string().optional(),
 });
 
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  PORTONE_API_SECRET: z.string().min(1).optional(),
+  PORTONE_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 // NEXT_PUBLIC_* must be referenced statically for Next.js to inline them.
@@ -29,6 +34,8 @@ const clientEnv = clientSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_PORTONE_STORE_ID: process.env.NEXT_PUBLIC_PORTONE_STORE_ID,
+  NEXT_PUBLIC_PORTONE_CHANNEL_KEY: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
@@ -54,6 +61,12 @@ export const env = {
   get ANTHROPIC_API_KEY() {
     return getServerEnv().ANTHROPIC_API_KEY;
   },
+  get PORTONE_API_SECRET() {
+    return getServerEnv().PORTONE_API_SECRET;
+  },
+  get PORTONE_WEBHOOK_SECRET() {
+    return getServerEnv().PORTONE_WEBHOOK_SECRET;
+  },
 };
 
 /** Feature flags derived from optional keys. Safe to call on the server. */
@@ -65,5 +78,18 @@ export const features = {
   /** Admin (service-role) operations such as workspace bootstrapping. */
   get serviceRole(): boolean {
     return typeof window === "undefined" && Boolean(getServerEnv().SUPABASE_SERVICE_ROLE_KEY);
+  },
+  /** PortOne subscription billing. Disabled (UI "준비중") when no API secret. */
+  get billing(): boolean {
+    return typeof window === "undefined" && Boolean(getServerEnv().PORTONE_API_SECRET);
+  },
+};
+
+/** Public billing config available on the client (browser SDK identifiers). */
+export const billingPublic = {
+  storeId: clientEnv.NEXT_PUBLIC_PORTONE_STORE_ID,
+  channelKey: clientEnv.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
+  get ready(): boolean {
+    return Boolean(clientEnv.NEXT_PUBLIC_PORTONE_STORE_ID && clientEnv.NEXT_PUBLIC_PORTONE_CHANNEL_KEY);
   },
 };

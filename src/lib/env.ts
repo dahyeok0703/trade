@@ -20,11 +20,6 @@ const clientSchema = z.object({
   // PortOne (billing) — public identifiers used by the browser SDK. Optional.
   NEXT_PUBLIC_PORTONE_STORE_ID: z.string().optional(),
   NEXT_PUBLIC_PORTONE_CHANNEL_KEY: z.string().optional(),
-  // Preview mode (e.g. StackBlitz/WebContainer): no real backend. When "1",
-  // public pages skip request-scoped auth (cookies()) so they render without a
-  // Supabase backend and without relying on WebContainer's flaky
-  // AsyncLocalStorage. Never set this in production.
-  NEXT_PUBLIC_PREVIEW: z.string().optional(),
 });
 
 const serverSchema = z.object({
@@ -44,11 +39,7 @@ const clientEnv = clientSchema.parse({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_PORTONE_STORE_ID: process.env.NEXT_PUBLIC_PORTONE_STORE_ID,
   NEXT_PUBLIC_PORTONE_CHANNEL_KEY: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
-  NEXT_PUBLIC_PREVIEW: process.env.NEXT_PUBLIC_PREVIEW,
 });
-
-/** Backend-less preview (StackBlitz/WebContainer). Safe on client and server. */
-export const isPreview = clientEnv.NEXT_PUBLIC_PREVIEW === "1";
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
 

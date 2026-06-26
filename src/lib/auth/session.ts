@@ -5,26 +5,15 @@ import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import { isPreview } from "@/lib/env";
 import type { Member, Workspace } from "@/lib/supabase/database.types";
 
-/** Current authenticated user, or null. Memoised per request.
- *  Tolerant of an unreachable auth backend (e.g. a StackBlitz preview with a
- *  placeholder Supabase URL) — public pages must still render. */
+/** Current authenticated user, or null. Memoised per request. */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
-  // Backend-less preview: skip request-scoped cookies() entirely so public
-  // pages render statically (WebContainer's AsyncLocalStorage can't reliably
-  // hold the request store across the cookies() hop).
-  if (isPreview) return null;
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
 });
 
 /** Redirect to /login unless authenticated. */

@@ -41,6 +41,28 @@
    이메일 인증 링크가 올바르게 동작합니다. AI 추출·결제·크론은 아래 선택 키를 추가하면
    켜집니다(없으면 우아하게 비활성화). 자세한 체크리스트는 [`LAUNCH.md`](./LAUNCH.md).
 
+## StackBlitz로 미리보기 (배포 전 확인)
+
+설치 없이 브라우저에서 앱을 바로 띄워 **디자인·공개 페이지·라우팅**을 확인할 수 있습니다.
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/dahyeok0703/trade/tree/claude/keen-sagan-p6639u)
+
+> `https://stackblitz.com/github/dahyeok0703/trade/tree/<브랜치>` 형식입니다.
+
+`.stackblitzrc`가 부팅용 **플레이스홀더 환경변수**를 주입하고 `pnpm dev`로 띄웁니다.
+StackBlitz는 브라우저 WebContainer라 **Supabase(Postgres·Auth)는 실행되지 않습니다.**
+
+- ✅ **바로 보이는 것**: 랜딩(`/`)·요금제(`/pricing`)·약관/개인정보/환불(`/terms`·`/privacy`·`/refund`),
+  전체 UI·디자인 시스템·반응형, 라우팅, 빌드/타입 동작.
+- ⚠️ **백엔드가 필요한 것**: 로그인·회원가입, 대시보드·바이어·수출건·서류 등 인증 앱,
+  AI 추출, 결제 — 실제 Supabase가 있어야 동작합니다(플레이스홀더로는 인증이 빈 상태).
+- 인증까지 미리 보려면 StackBlitz의 **Settings → Environment**(또는 `.env` 추가)에 실제
+  `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`(+ 선택 키)를 넣고, 그 Supabase에
+  `supabase/migrations`를 적용하세요. 인증 흐름은 Supabase `Redirect URLs`에 StackBlitz
+  프리뷰 도메인 등록이 필요합니다.
+
+공개 페이지는 백엔드가 닿지 않아도 크래시 없이 렌더됩니다(인증 호출 실패는 "비로그인"으로 처리).
+
 ## 빠른 시작 (로컬)
 
 ### 사전 준비

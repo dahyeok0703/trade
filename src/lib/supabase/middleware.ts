@@ -44,9 +44,16 @@ export async function updateSession(request: NextRequest) {
   );
 
   // IMPORTANT: do not run code between createServerClient and getUser().
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Tolerate an unreachable backend (e.g. a placeholder Supabase URL in a
+  // StackBlitz preview): treat failures as "no user" so public routes still
+  // serve and protected routes redirect to /login rather than 500.
+  let user = null;
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+  } catch {
+    user = null;
+  }
 
   const { pathname } = request.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some(

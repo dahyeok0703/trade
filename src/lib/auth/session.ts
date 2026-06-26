@@ -7,13 +7,19 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Member, Workspace } from "@/lib/supabase/database.types";
 
-/** Current authenticated user, or null. Memoised per request. */
+/** Current authenticated user, or null. Memoised per request.
+ *  Tolerant of an unreachable auth backend (e.g. a StackBlitz preview with a
+ *  placeholder Supabase URL) — public pages must still render. */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  } catch {
+    return null;
+  }
 });
 
 /** Redirect to /login unless authenticated. */

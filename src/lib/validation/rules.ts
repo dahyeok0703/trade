@@ -93,7 +93,7 @@ export function runValidation(input: ValidationInputs): ValidationReport {
     severity: "error",
     passed: Boolean(exporter.company_en && exporter.address_en),
     detail: !(exporter.company_en && exporter.address_en)
-      ? "설정 > 워크스페이스의 수출자 영문 상호·주소(exporter_info)를 입력하세요."
+      ? "설정 > 회사 정보의 수출자 영문 상호·주소를 입력하세요."
       : undefined,
   });
 

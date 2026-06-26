@@ -31,7 +31,7 @@ export default async function BillingPage() {
         <PageHeader title="결제" description="구독과 결제수단을 관리합니다." />
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            결제 정보는 관리자(owner)만 확인·관리할 수 있습니다.
+            결제 정보는 관리자만 확인·관리할 수 있습니다.
           </CardContent>
         </Card>
       </>

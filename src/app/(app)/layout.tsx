@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-center">
         <div className="space-y-2">
-          <p className="font-medium">워크스페이스를 준비하고 있습니다</p>
+          <p className="font-medium">회사 정보를 준비하고 있습니다</p>
           <p className="text-sm text-muted-foreground">
             잠시 후 새로고침해 주세요. 문제가 계속되면 다시 로그인해 주세요.
           </p>

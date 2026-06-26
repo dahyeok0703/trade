@@ -8,55 +8,30 @@ import { ExporterInfoForm } from "@/components/settings/exporter-info-form";
 import type { ExporterInfoInput } from "@/lib/validations/workspace";
 import { features } from "@/lib/env";
 import { getWorkspaceContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
-import { FREE_MONTHLY_EXTRACT_QUOTA } from "@/lib/pricing/cogs";
-import { getAliasInsights } from "@/lib/data/extraction-aliases";
-import { formatMoney } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "설정" };
 
 export default async function SettingsPage() {
   const ctx = await getWorkspaceContext();
 
-  // AI usage this month — owner-only (RLS returns nothing for staff).
-  let usage: { input_tokens: number; output_tokens: number; doc_count: number; est_cost_krw: number } | null =
-    null;
-  if (ctx?.member.role === "owner") {
-    const supabase = await createClient();
-    const monthStart = new Date();
-    const monthKey = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}-01`;
-    const { data } = await supabase
-      .from("ai_usage")
-      .select("input_tokens, output_tokens, doc_count, est_cost_krw")
-      .eq("workspace_id", ctx.workspace.id)
-      .eq("month", monthKey)
-      .maybeSingle();
-    usage = data;
-  }
-  const isFree = (ctx?.workspace.plan ?? "free") === "free";
-
-  // AI learning memory (alias) stats — shows accuracy compounding over time.
-  const aliasInsights = ctx ? await getAliasInsights(ctx.workspace.id) : null;
-
   const rows = [
-    { label: "워크스페이스", value: ctx?.workspace.name ?? "-" },
-    { label: "슬러그", value: ctx?.workspace.slug ?? "-" },
+    { label: "회사", value: ctx?.workspace.name ?? "-" },
     { label: "내 계정", value: ctx?.user.email ?? "-" },
-    { label: "역할", value: ctx?.member.role === "owner" ? "관리자(owner)" : "직원(staff)" },
+    { label: "역할", value: ctx?.member.role === "owner" ? "관리자" : "직원" },
   ];
 
   const exporterInfo = (ctx?.workspace.exporter_info ?? {}) as Partial<ExporterInfoInput>;
 
   return (
     <>
-      <PageHeader title="설정" description="워크스페이스와 계정 정보를 확인합니다." />
+      <PageHeader title="설정" description="회사 정보와 계정 정보를 확인합니다." />
 
       {ctx?.member.role === "owner" && <ExporterInfoForm initial={exporterInfo} />}
 
       <Card>
         <CardHeader>
-          <CardTitle>워크스페이스</CardTitle>
-          <CardDescription>현재 워크스페이스 정보입니다.</CardDescription>
+          <CardTitle>회사 정보</CardTitle>
+          <CardDescription>현재 회사 계정 정보입니다.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {rows.map((row, i) => (
@@ -71,80 +46,19 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>기능 상태</CardTitle>
-          <CardDescription>키가 없는 통합 기능은 자동으로 비활성화됩니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <div>
-              <p className="font-medium">AI 항목 추출</p>
-              <p className="text-muted-foreground">주문서에서 품목을 추출하는 보조 기능</p>
-            </div>
-            <Badge variant={features.aiExtraction ? "success" : "secondary"}>
-              {features.aiExtraction ? "사용 가능" : "비활성"}
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      {aliasInsights && (
+      {/* Shown only once AI extraction is configured (API key present). */}
+      {features.aiExtraction && (
         <Card>
           <CardHeader>
-            <CardTitle>AI 학습 메모리</CardTitle>
+            <CardTitle>AI 주문서 추출</CardTitle>
             <CardDescription>
-              추출 결과를 확정·교정할 때마다 「바이어 표현 → 제품」 매칭을 기억해 다음 주문서의
-              매칭 정확도를 높입니다. 쓸수록 똑똑해집니다.
+              주문서(PDF·이미지·이메일)에서 품목을 자동으로 추출해 초안을 채웁니다.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg border p-3">
-              <p className="text-2xl font-bold tabular-nums text-teal">{aliasInsights.aliasCount}</p>
-              <p className="mt-1 text-xs text-muted-foreground">학습된 별칭</p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-2xl font-bold tabular-nums">{aliasInsights.reuseCount}</p>
-              <p className="mt-1 text-xs text-muted-foreground">기억 재사용</p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-2xl font-bold tabular-nums">{aliasInsights.buyersCovered}</p>
-              <p className="mt-1 text-xs text-muted-foreground">적용 바이어</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {ctx?.member.role === "owner" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI 사용량 (이번 달)</CardTitle>
-            <CardDescription>
-              마진 보호를 위해 추출 호출의 토큰·추정 원가를 집계합니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">추출 횟수</span>
-              <span className="font-medium tabular-nums">
-                {usage?.doc_count ?? 0}
-                {isFree ? ` / ${FREE_MONTHLY_EXTRACT_QUOTA}건 (무료 한도)` : "건"}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">입력 / 출력 토큰</span>
-              <span className="font-medium tabular-nums">
-                {(usage?.input_tokens ?? 0).toLocaleString()} /{" "}
-                {(usage?.output_tokens ?? 0).toLocaleString()}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">추정 원가</span>
-              <span className="font-medium tabular-nums">
-                {formatMoney(usage?.est_cost_krw ?? 0, "KRW")}
-              </span>
+          <CardContent>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">상태</span>
+              <Badge variant="success">사용 가능</Badge>
             </div>
           </CardContent>
         </Card>

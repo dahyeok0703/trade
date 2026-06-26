@@ -41,7 +41,7 @@ export async function ensureWorkspace(companyName?: string): Promise<void> {
     (typeof user.user_metadata?.company_name === "string"
       ? user.user_metadata.company_name
       : "") ||
-    "내 워크스페이스";
+    "내 회사";
 
   const { error } = await supabase.rpc("bootstrap_workspace", {
     workspace_name: name,

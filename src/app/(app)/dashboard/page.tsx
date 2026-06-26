@@ -61,7 +61,7 @@ function StatCard({
 
 export default async function DashboardPage() {
   const [ctx, data] = await Promise.all([getWorkspaceContext(), getDashboardData()]);
-  const workspaceName = ctx?.workspace.name ?? "내 워크스페이스";
+  const workspaceName = ctx?.workspace.name ?? "내 회사";
 
   return (
     <>

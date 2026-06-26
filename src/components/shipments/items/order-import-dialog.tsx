@@ -69,9 +69,6 @@ export function OrderImportDialog({
   const [fileName, setFileName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
-  const [meta, setMeta] = useState<{ model: string; costKrw: number; aliasMatched: number } | null>(
-    null,
-  );
   const [isApplying, startApply] = useTransition();
 
   function reset() {
@@ -79,7 +76,6 @@ export function OrderImportDialog({
     setText("");
     setFileName(null);
     setRows([]);
-    setMeta(null);
   }
 
   async function extract() {
@@ -115,15 +111,7 @@ export function OrderImportDialog({
         return;
       }
       setRows(candidates.map(toRow));
-      setMeta({
-        model: data.model,
-        costKrw: data.usage?.estCostKrw ?? 0,
-        aliasMatched: data.aliasMatched ?? 0,
-      });
       setStage("review");
-      if (data.aliasMatched > 0) {
-        toast.success(`${data.aliasMatched}개 품목이 이 바이어의 학습된 기억으로 매칭됐습니다.`);
-      }
       if (data.lowConfidence) {
         toast.warning("신뢰도가 낮은 항목이 있습니다. 값을 확인해 주세요.");
       }
@@ -285,9 +273,7 @@ export function OrderImportDialog({
                         />
                       </td>
                       <td className="p-1.5">
-                        {r.matchedVia === "alias" ? (
-                          <Badge variant="success">기억된 매칭</Badge>
-                        ) : r.needsReview ? (
+                        {r.needsReview ? (
                           <Badge variant="warning">확인 필요</Badge>
                         ) : (
                           <Badge variant="secondary">매칭됨</Badge>
@@ -310,17 +296,7 @@ export function OrderImportDialog({
                 </tbody>
               </table>
             </div>
-            {meta && (
-              <p className="text-xs text-muted-foreground">
-                모델: {meta.model} · 추정 비용 ₩{meta.costKrw.toLocaleString()}
-                {meta.aliasMatched > 0 && ` · 기억으로 매칭 ${meta.aliasMatched}건`} · 저장 전 값을
-                확인하세요.
-              </p>
-            )}
-            <p className="text-[11px] text-muted-foreground">
-              ※ 저장 시, 확정한 (바이어 표현 → 제품) 매칭을 기억해 다음 같은 바이어 주문서에서 더
-              정확히 매칭합니다.
-            </p>
+            <p className="text-xs text-muted-foreground">저장 전 값을 확인·수정하세요.</p>
           </div>
         )}
 

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   if (!user) return fail(401, "로그인이 필요합니다.", "UNAUTHENTICATED");
 
   const member = await getActiveMembership(user.id);
-  if (!member) return fail(403, "워크스페이스 접근 권한이 없습니다.", "NO_WORKSPACE");
+  if (!member) return fail(403, "회사 계정에 접근할 수 없습니다.", "NO_WORKSPACE");
 
   // ── Feature gate (graceful when no key) ────────────────────────────────────
   const client = createAnthropic();

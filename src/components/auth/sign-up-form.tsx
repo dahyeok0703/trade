@@ -42,7 +42,7 @@ export function SignUpForm() {
         form.reset();
         return;
       }
-      toast.success("환영합니다! 워크스페이스를 만들었습니다.");
+      toast.success("환영합니다! 회사 계정을 만들었습니다.");
       router.push(result.data.redirectTo ?? "/dashboard");
       router.refresh();
     });
@@ -60,7 +60,7 @@ export function SignUpForm() {
               <FormControl>
                 <Input placeholder="(주)한국무역" autoComplete="organization" {...field} />
               </FormControl>
-              <FormDescription>가입 시 워크스페이스로 자동 생성됩니다.</FormDescription>
+              <FormDescription>가입 시 회사 계정으로 자동 생성됩니다.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -11,7 +11,7 @@ export default function SignUpPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">무료로 시작하기</h1>
         <p className="text-sm text-muted-foreground">
-          업체 계정을 만들면 워크스페이스가 자동으로 생성됩니다.
+          업체 계정을 만들면 회사 정보가 자동으로 생성됩니다.
         </p>
       </div>
       <SignUpForm />

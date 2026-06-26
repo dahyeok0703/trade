@@ -70,7 +70,7 @@ export function authedAction<S extends z.ZodTypeAny, TOutput>(
 
       const member = await getActiveMembership(user.id);
       if (!member) {
-        return fail("워크스페이스 접근 권한이 없습니다.", { code: "NO_WORKSPACE" });
+        return fail("회사 계정에 접근할 수 없습니다.", { code: "NO_WORKSPACE" });
       }
 
       return ok(

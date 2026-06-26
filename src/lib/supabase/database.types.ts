@@ -476,6 +476,50 @@ export interface Database {
           },
         ];
       };
+      extraction_aliases: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          buyer_id: string | null;
+          source_text: string;
+          product_id: string;
+          times_seen: number;
+          last_confirmed_at: string;
+        } & Timestamps &
+          WithUpdated;
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          buyer_id?: string | null;
+          source_text: string;
+          product_id: string;
+          times_seen?: number;
+          last_confirmed_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["extraction_aliases"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "extraction_aliases_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extraction_aliases_buyer_id_fkey";
+            columns: ["buyer_id"];
+            referencedRelation: "buyers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extraction_aliases_product_id_fkey";
+            columns: ["product_id"];
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       subscriptions: {
         Row: {
           id: string;
@@ -546,6 +590,14 @@ export interface Database {
         Args: Record<string, never>;
         Returns: number;
       };
+      learn_extraction_aliases: {
+        Args: {
+          p_workspace_id: string;
+          p_buyer_id: string | null;
+          p_entries: Json;
+        };
+        Returns: number;
+      };
     };
     Enums: {
       member_role: MemberRole;
@@ -575,3 +627,4 @@ export type AiUsage = Tables["ai_usage"]["Row"];
 export type AuditLog = Tables["audit_logs"]["Row"];
 export type BillingEvent = Tables["billing_events"]["Row"];
 export type Subscription = Tables["subscriptions"]["Row"];
+export type ExtractionAlias = Tables["extraction_aliases"]["Row"];

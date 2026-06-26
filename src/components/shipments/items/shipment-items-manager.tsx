@@ -76,12 +76,14 @@ function toFormValues(item: ShipmentItem): ShipmentItemFormValues {
 
 export function ShipmentItemsManager({
   shipmentId,
+  buyerId = null,
   items,
   products,
   currency,
   aiEnabled = false,
 }: {
   shipmentId: string;
+  buyerId?: string | null;
   items: ShipmentItem[];
   products: ProductOption[];
   currency: string;
@@ -191,7 +193,9 @@ export function ShipmentItemsManager({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">{editingId ? "품목 수정" : "품목 추가"}</CardTitle>
-          {aiEnabled && !editingId && <OrderImportDialog shipmentId={shipmentId} />}
+          {aiEnabled && !editingId && (
+            <OrderImportDialog shipmentId={shipmentId} buyerId={buyerId} />
+          )}
         </CardHeader>
         <CardContent>
           <Form {...form}>

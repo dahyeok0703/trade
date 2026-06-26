@@ -153,6 +153,7 @@ export default async function ShipmentDetailPage({
         <TabsContent value="items">
           <ShipmentItemsManager
             shipmentId={shipment.id}
+            buyerId={shipment.buyer_id}
             items={items}
             products={products}
             currency={shipment.currency}

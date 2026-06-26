@@ -21,6 +21,9 @@
    AI(Anthropic)는 주문서/메일에서 **품목·수량·금액 같은 항목을 구조화해 추출**하는 보조
    역할만 합니다. 가격 적정성, 규정 준수, 거래 가부 등 **판단·의사결정은 하지 않습니다.**
    추출 결과는 항상 사람이 검토·수정할 수 있어야 합니다.
+   - **학습 루프(extraction_aliases)**: 사용자가 확정·교정한 「바이어 표현 → 제품」을 DB에
+     기억해 다음 매칭에서 **먼저 참조**합니다. 모델 파인튜닝이 아니라 **DB 이력 참조**이며,
+     AI 호출량을 늘리지 않습니다(별칭은 무료 DB 조회). 매칭은 여전히 초안 — 자동 저장 금지.
 
 3. **서류 일치 검증은 규칙 기반(rule-based).**
    인보이스 ↔ 패킹리스트 수량/금액 일치 등 검증은 **결정적 규칙**으로 구현합니다.
@@ -72,7 +75,8 @@ src/
     validations/       zod 스키마
     validation/        서류 일치검증 규칙 엔진(규칙 기반, AI 아님)
     documents.ts       인보이스·패킹리스트 공통 문서 모델
-    pricing/ · ai/     AI 추출 원가(COGS) · 추출 모듈
+    pricing/ · ai/     AI 추출 원가(COGS) · 추출/매칭(별칭 우선) 모듈
+    data/extraction-aliases  학습 메모리: 별칭 로드·학습 upsert·인사이트(RLS·이중 격리)
     billing/           구독 결제: plans(플랜 한도·가격) · gate(기능 게이팅) ·
                        PortOne 어댑터(types/portone/index) · events(웹훅 멱등 기록)
 supabase/
@@ -85,6 +89,7 @@ supabase/
     0006_ai_usage_rpc.sql  record_ai_usage()·ai_extract_count_this_month() (마진 보호)
     0007_shipment_tracking.sql  shipments.eta·bl_no
     0008_subscriptions.sql  subscriptions(빌링키 정기결제)·billing_events.event_id(웹훅 멱등 unique)
+    0009_extraction_memory.sql  extraction_aliases(바이어별 품목 별칭 학습)·learn_extraction_aliases() RPC
   seed.sql             데모 시드 (데모 계정 demo@tradedocs.test / demo12345)
   tests/               RLS 격리 pgTAP 테스트 (supabase test db)
   config.toml          로컬 개발 설정
@@ -109,11 +114,12 @@ supabase/
 - **audit_logs** — actor_member_id, action, target_table, target_id, meta (owner 읽기 / member append)
 - **billing_events** — type, raw, event_id(웹훅 멱등 unique) (owner 읽기 전용)
 - **subscriptions** — workspace_id(unique), provider, plan, status, billing_key(서버 전용·클라이언트 노출 금지), card_brand/last4, current_period_end, cancel_at_period_end (owner 전용)
+- **extraction_aliases** — buyer_id(nullable=전역), source_text(정규화된 바이어 표현), product_id, times_seen, last_confirmed_at. 확정·교정 시 학습해 다음 추출의 매칭을 우선 참조 (멤버 CRUD, 워크스페이스 격리). 파인튜닝 아님 — DB 이력 참조
 
 ### RLS 규칙 (`is_workspace_member()` / `is_workspace_owner()`)
 
-- 운영 테이블(buyers·products·shipments·shipment_items·trade_documents·validations·payments):
-  활성 멤버는 전체 CRUD.
+- 운영 테이블(buyers·products·shipments·shipment_items·trade_documents·validations·payments·
+  extraction_aliases): 활성 멤버는 전체 CRUD.
 - workspaces: 멤버 읽기 / **owner 수정**. members: 멤버 읽기 / **owner 관리**.
 - ai_usage·billing_events·audit_logs: **owner 읽기 전용** (시스템 쓰기는 service-role).
 - 헬퍼는 SECURITY DEFINER 라 members 정책을 재귀시키지 않습니다.

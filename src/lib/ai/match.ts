@@ -18,9 +18,33 @@ export type ExtractedCandidate = {
   matchedProductName: string | null;
   confidence: number;
   needsReview: boolean;
+  /** The buyer's original wording (verbatim) — kept so a confirmed line can be
+   *  learned as an alias on save. NOT shown as the editable description. */
+  source_text: string;
+  /** How the product was matched: a learned alias, similarity, or no match. */
+  matchedVia: "alias" | "similarity" | null;
 };
 
+/** normalized buyer wording → confirmed product_id (a learned alias). */
+export type AliasMap = Map<string, string>;
+
 const MATCH_THRESHOLD = 0.34;
+
+/** Confidence assigned to an alias hit (a previously human-confirmed match). */
+const ALIAS_CONFIDENCE = 0.97;
+
+/**
+ * Normalises buyer wording for alias storage AND lookup — MUST be identical on
+ * both sides so a saved alias is found again. Lowercase, strip punctuation,
+ * collapse whitespace. (Mirrors the matcher's tokenizer character class.)
+ */
+export function normalizeSourceText(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function tokenize(s: string): Set<string> {
   return new Set(
@@ -64,25 +88,59 @@ function bestMatch(description: string, products: ProductOption[]): ProductOptio
   return bestScore >= MATCH_THRESHOLD ? best : null;
 }
 
-/** Enrich each extracted item against the product master (rule-based). */
+/**
+ * Enrich each extracted item against the product master (rule-based).
+ *
+ * Matching order, per the learning loop:
+ *   1. Learned alias — if this buyer previously confirmed this exact wording
+ *      (normalised), reuse that product directly (high confidence, no review).
+ *   2. Similarity — fall back to Jaccard token overlap against product names.
+ *
+ * `aliases` is injected by the caller (route.ts loads it from the DB); this fn
+ * stays pure so it's trivially testable and adds no AI calls.
+ */
 export function matchExtraction(
   extraction: ExtractionResult,
   products: ProductOption[],
+  aliases?: AliasMap,
 ): ExtractedCandidate[] {
+  const byId = new Map(products.map((p) => [p.id, p]));
+
   return extraction.items.map((item) => {
-    const product = bestMatch(item.description, products);
+    const sourceText = item.description ?? "";
+
+    // 1) Alias-first: a previously human-confirmed match for this wording.
+    let product: ProductOption | null = null;
+    let matchedVia: "alias" | "similarity" | null = null;
+    const aliasProductId = aliases?.get(normalizeSourceText(sourceText));
+    if (aliasProductId) {
+      const aliased = byId.get(aliasProductId);
+      if (aliased) {
+        product = aliased;
+        matchedVia = "alias";
+      }
+    }
+
+    // 2) Similarity fallback when no alias applied.
+    if (!product) {
+      product = bestMatch(sourceText, products);
+      if (product) matchedVia = "similarity";
+    }
+
     const qty = Number.isFinite(item.quantity) ? Math.max(0, item.quantity) : 0;
+    const unitPrice = item.unit_price > 0 ? item.unit_price : (product?.unit_price_usd ?? 0);
 
-    const unitPrice =
-      item.unit_price > 0 ? item.unit_price : (product?.unit_price_usd ?? 0);
+    const net = product?.net_weight != null ? round(product.net_weight * qty, 3) : null;
+    const gross = product?.gross_weight != null ? round(product.gross_weight * qty, 3) : null;
 
-    const net =
-      product?.net_weight != null ? round(product.net_weight * qty, 3) : null;
-    const gross =
-      product?.gross_weight != null ? round(product.gross_weight * qty, 3) : null;
-
+    // Alias hits are pre-confirmed, so they don't need review — except when the
+    // price is genuinely missing (still worth a human glance). Everything else
+    // keeps the original confidence/threshold logic.
+    const confidence = matchedVia === "alias" ? Math.max(item.confidence, ALIAS_CONFIDENCE) : item.confidence;
     const needsReview =
-      item.confidence < LOW_CONFIDENCE_THRESHOLD || product === null || unitPrice === 0;
+      matchedVia === "alias"
+        ? unitPrice === 0
+        : confidence < LOW_CONFIDENCE_THRESHOLD || product === null || unitPrice === 0;
 
     return {
       description_en: item.description.trim() || (product?.name_en ?? ""),
@@ -94,8 +152,10 @@ export function matchExtraction(
       gross_weight: gross,
       product_id: product?.id ?? null,
       matchedProductName: product?.name_en ?? null,
-      confidence: item.confidence,
+      confidence,
       needsReview,
+      source_text: sourceText,
+      matchedVia,
     };
   });
 }

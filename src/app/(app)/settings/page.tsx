@@ -10,6 +10,7 @@ import { features } from "@/lib/env";
 import { getWorkspaceContext } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_MONTHLY_EXTRACT_QUOTA } from "@/lib/pricing/cogs";
+import { getAliasInsights } from "@/lib/data/extraction-aliases";
 import { formatMoney } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "설정" };
@@ -33,6 +34,9 @@ export default async function SettingsPage() {
     usage = data;
   }
   const isFree = (ctx?.workspace.plan ?? "free") === "free";
+
+  // AI learning memory (alias) stats — shows accuracy compounding over time.
+  const aliasInsights = ctx ? await getAliasInsights(ctx.workspace.id) : null;
 
   const rows = [
     { label: "워크스페이스", value: ctx?.workspace.name ?? "-" },
@@ -84,6 +88,32 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {aliasInsights && (
+        <Card>
+          <CardHeader>
+            <CardTitle>AI 학습 메모리</CardTitle>
+            <CardDescription>
+              추출 결과를 확정·교정할 때마다 「바이어 표현 → 제품」 매칭을 기억해 다음 주문서의
+              매칭 정확도를 높입니다. 쓸수록 똑똑해집니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg border p-3">
+              <p className="text-2xl font-bold tabular-nums text-teal">{aliasInsights.aliasCount}</p>
+              <p className="mt-1 text-xs text-muted-foreground">학습된 별칭</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-2xl font-bold tabular-nums">{aliasInsights.reuseCount}</p>
+              <p className="mt-1 text-xs text-muted-foreground">기억 재사용</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-2xl font-bold tabular-nums">{aliasInsights.buyersCovered}</p>
+              <p className="mt-1 text-xs text-muted-foreground">적용 바이어</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {ctx?.member.role === "owner" && (
         <Card>

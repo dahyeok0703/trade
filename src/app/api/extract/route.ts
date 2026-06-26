@@ -5,10 +5,23 @@ import { getActiveMembership } from "@/lib/auth/session";
 import { createAnthropic } from "@/lib/ai/client";
 import { prepareInput, runExtraction, ExtractionError } from "@/lib/ai/extract";
 import { matchExtraction } from "@/lib/ai/match";
+import { loadAliasMap, topAliasesForBuyer, type AliasHint } from "@/lib/data/extraction-aliases";
 import { listProductOptions } from "@/lib/data/products";
 import { estimateCostKrw } from "@/lib/pricing/cogs";
 import { planLimits } from "@/lib/billing/plans";
 import type { WorkspacePlan } from "@/lib/supabase/database.types";
+
+/** A reference-only hint listing this buyer's previously confirmed items. */
+function buyerHistoryBlock(hints: AliasHint[]) {
+  const lines = hints.map((h) => `- "${h.source_text}" -> ${h.product_name}`).join("\n");
+  return {
+    type: "text" as const,
+    text:
+      "This buyer's previously confirmed items (reference only — align wording when it clearly " +
+      "matches; do NOT invent items or copy quantities/prices):\n" +
+      lines,
+  };
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -56,17 +69,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Read input (file or pasted text) ───────────────────────────────────────
+  // ── Read input (file or pasted text) + buyer context ───────────────────────
   let prepared;
+  let buyerId: string | null = null;
+  let shipmentId: string | null = null;
   try {
     const contentType = req.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
-      const body = (await req.json()) as { text?: string };
+      const body = (await req.json()) as { text?: string; buyer_id?: string; shipment_id?: string };
+      buyerId = body.buyer_id ?? null;
+      shipmentId = body.shipment_id ?? null;
       prepared = await prepareInput({ text: body.text });
     } else {
       const form = await req.formData();
       const file = form.get("file");
       const text = form.get("text");
+      const bId = form.get("buyer_id");
+      const sId = form.get("shipment_id");
+      buyerId = typeof bId === "string" && bId ? bId : null;
+      shipmentId = typeof sId === "string" && sId ? sId : null;
       if (file instanceof File) {
         if (file.size > MAX_FILE_BYTES) {
           return fail(413, "파일이 너무 큽니다. (최대 8MB)", "FILE_TOO_LARGE");
@@ -84,9 +105,31 @@ export async function POST(req: NextRequest) {
     return fail(400, "입력을 읽지 못했습니다.", "BAD_INPUT");
   }
 
+  // Resolve the buyer from the shipment when only a shipment id was given
+  // (RLS scopes this lookup to the caller's workspace).
+  if (!buyerId && shipmentId) {
+    const { data: sh } = await supabase
+      .from("shipments")
+      .select("buyer_id")
+      .eq("id", shipmentId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    buyerId = sh?.buyer_id ?? null;
+  }
+
+  // ── Load extraction memory (learned aliases) — free DB lookup, no AI cost ──
+  const workspaceId = member.workspace_id;
+  const [aliasMap, hints] = await Promise.all([
+    loadAliasMap(workspaceId, buyerId),
+    topAliasesForBuyer(workspaceId, buyerId),
+  ]);
+  // Reference-only buyer history nudges the model toward known wording. This
+  // does not add a request — it rides on the same single extraction call.
+  const content = hints.length ? [...prepared.content, buyerHistoryBlock(hints)] : prepared.content;
+
   // ── Extract (Haiku → Sonnet fallback) ──────────────────────────────────────
   try {
-    const run = await runExtraction(client, prepared.content);
+    const run = await runExtraction(client, content);
 
     // Record token usage for margin tracking (best-effort).
     const estCostKrw = estimateCostKrw(run.model, run.usage);
@@ -98,9 +141,10 @@ export async function POST(req: NextRequest) {
     });
     if (usageError) console.error("[extract] failed to record ai_usage", usageError);
 
-    // Deterministic enrichment against the product master.
+    // Deterministic enrichment against the product master, alias-memory first.
     const products = await listProductOptions();
-    const items = matchExtraction(run.result, products);
+    const items = matchExtraction(run.result, products, aliasMap);
+    const aliasMatched = items.filter((i) => i.matchedVia === "alias").length;
 
     return NextResponse.json({
       ok: true,
@@ -108,6 +152,7 @@ export async function POST(req: NextRequest) {
       model: run.model,
       sourceKind: prepared.sourceKind,
       lowConfidence: run.lowConfidence,
+      aliasMatched,
       notes: run.result.notes,
       usage: {
         inputTokens: run.usage.inputTokens,

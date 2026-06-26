@@ -46,6 +46,13 @@ const baseItem = {
   gross_weight: optionalNonNeg,
   ctns: optionalInt,
   cbm: optionalNonNeg,
+  // The buyer's original wording for this line (from an order/AI draft, or the
+  // picked product name). Not stored on the row — used only to learn a
+  // buyer→product alias on save. Optional and capped.
+  source_text: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().trim().max(300).optional(),
+  ),
 };
 
 export const shipmentItemSchema = z.object({
@@ -61,6 +68,12 @@ export const updateShipmentItemSchema = z.object({
 /** Bulk insert (e.g. applying reviewed AI-extracted order items). */
 export const bulkShipmentItemsSchema = z.object({
   shipment_id: z.string().uuid(),
+  /** Buyer to attribute learned aliases to (optional; falls back to shipment). */
+  buyer_id: z
+    .string()
+    .uuid()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   items: z.array(z.object(baseItem)).min(1, "추가할 품목이 없습니다.").max(200),
 });
 

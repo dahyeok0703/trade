@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { authedAction, ActionError, type ActionContext } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
+import { learnAliases } from "@/lib/data/extraction-aliases";
 import {
   shipmentItemSchema,
   updateShipmentItemSchema,
@@ -14,6 +15,17 @@ import {
 } from "@/lib/validations/shipment-item";
 
 const idSchema = z.object({ id: z.string().uuid() });
+
+/** Resolve a shipment's buyer (RLS-scoped) for alias attribution. */
+async function shipmentBuyerId(shipmentId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("shipments")
+    .select("buyer_id")
+    .eq("id", shipmentId)
+    .maybeSingle();
+  return data?.buyer_id ?? null;
+}
 
 /** Round to 2dp the same way invoices present money. */
 function round2(value: number): number {
@@ -62,6 +74,13 @@ export const addShipmentItemAction = authedAction(shipmentItemSchema, async (inp
   if (error || !data) throw new ActionError("품목을 추가하지 못했습니다.");
 
   await audit(ctx, "shipment_item.added", data.id, { shipment_id });
+  // Learn this confirmed match (manual pick counts too) for next time.
+  if (rest.product_id) {
+    const buyerId = await shipmentBuyerId(shipment_id);
+    await learnAliases(ctx.workspaceId, buyerId, [
+      { sourceText: rest.source_text ?? rest.description_en, productId: rest.product_id },
+    ]);
+  }
   revalidateShipment(shipment_id);
   return { id: data.id };
 });
@@ -86,6 +105,21 @@ export const addShipmentItemsBulkAction = authedAction(bulkShipmentItemsSchema, 
     shipment_id: input.shipment_id,
     count: inserted,
   });
+
+  // Learn every confirmed (buyer wording → product) pair from this batch. The
+  // buyer's original wording (source_text) is preserved through the review UI.
+  const buyerId = input.buyer_id ?? (await shipmentBuyerId(input.shipment_id));
+  await learnAliases(
+    ctx.workspaceId,
+    buyerId,
+    input.items
+      .filter((it) => it.product_id)
+      .map((it) => ({
+        sourceText: it.source_text ?? it.description_en,
+        productId: it.product_id ?? null,
+      })),
+  );
+
   revalidateShipment(input.shipment_id);
   return { inserted };
 });
@@ -105,6 +139,14 @@ export const updateShipmentItemAction = authedAction(
     if (error || !data) throw new ActionError("품목을 수정하지 못했습니다.");
 
     await audit(ctx, "shipment_item.updated", id, { shipment_id: data.shipment_id });
+    // A correction (re-pointing wording at a different product) is a strong
+    // learning signal — record it too.
+    if (rest.product_id) {
+      const buyerId = await shipmentBuyerId(data.shipment_id);
+      await learnAliases(ctx.workspaceId, buyerId, [
+        { sourceText: rest.source_text ?? rest.description_en, productId: rest.product_id },
+      ]);
+    }
     revalidateShipment(data.shipment_id);
     return { id };
   },

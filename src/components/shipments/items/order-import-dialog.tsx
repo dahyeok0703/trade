@@ -32,6 +32,9 @@ type Row = {
   product_id: string | null;
   matchedProductName: string | null;
   needsReview: boolean;
+  /** Buyer's original wording — preserved for alias learning on save. */
+  source_text: string;
+  matchedVia: "alias" | "similarity" | null;
 };
 
 function toRow(c: ExtractedCandidate): Row {
@@ -46,10 +49,18 @@ function toRow(c: ExtractedCandidate): Row {
     product_id: c.product_id,
     matchedProductName: c.matchedProductName,
     needsReview: c.needsReview,
+    source_text: c.source_text,
+    matchedVia: c.matchedVia,
   };
 }
 
-export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
+export function OrderImportDialog({
+  shipmentId,
+  buyerId,
+}: {
+  shipmentId: string;
+  buyerId: string | null;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -58,7 +69,9 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
-  const [meta, setMeta] = useState<{ model: string; costKrw: number } | null>(null);
+  const [meta, setMeta] = useState<{ model: string; costKrw: number; aliasMatched: number } | null>(
+    null,
+  );
   const [isApplying, startApply] = useTransition();
 
   function reset() {
@@ -81,12 +94,14 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
       if (file) {
         const fd = new FormData();
         fd.append("file", file);
+        if (buyerId) fd.append("buyer_id", buyerId);
+        fd.append("shipment_id", shipmentId);
         res = await fetch("/api/extract", { method: "POST", body: fd });
       } else {
         res = await fetch("/api/extract", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, buyer_id: buyerId, shipment_id: shipmentId }),
         });
       }
       const data = await res.json();
@@ -100,8 +115,15 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
         return;
       }
       setRows(candidates.map(toRow));
-      setMeta({ model: data.model, costKrw: data.usage?.estCostKrw ?? 0 });
+      setMeta({
+        model: data.model,
+        costKrw: data.usage?.estCostKrw ?? 0,
+        aliasMatched: data.aliasMatched ?? 0,
+      });
       setStage("review");
+      if (data.aliasMatched > 0) {
+        toast.success(`${data.aliasMatched}개 품목이 이 바이어의 학습된 기억으로 매칭됐습니다.`);
+      }
       if (data.lowConfidence) {
         toast.warning("신뢰도가 낮은 항목이 있습니다. 값을 확인해 주세요.");
       }
@@ -127,6 +149,7 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
     startApply(async () => {
       const result = await addShipmentItemsBulkAction({
         shipment_id: shipmentId,
+        buyer_id: buyerId ?? "",
         items: rows.map((r) => ({
           product_id: r.product_id ?? "",
           description_en: r.description_en,
@@ -138,6 +161,7 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
           gross_weight: r.gross_weight ?? "",
           ctns: "",
           cbm: "",
+          source_text: r.source_text,
         })),
       });
       if (!result.ok) {
@@ -261,7 +285,9 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
                         />
                       </td>
                       <td className="p-1.5">
-                        {r.needsReview ? (
+                        {r.matchedVia === "alias" ? (
+                          <Badge variant="success">기억된 매칭</Badge>
+                        ) : r.needsReview ? (
                           <Badge variant="warning">확인 필요</Badge>
                         ) : (
                           <Badge variant="secondary">매칭됨</Badge>
@@ -286,10 +312,15 @@ export function OrderImportDialog({ shipmentId }: { shipmentId: string }) {
             </div>
             {meta && (
               <p className="text-xs text-muted-foreground">
-                모델: {meta.model} · 추정 비용 ₩{meta.costKrw.toLocaleString()} · 저장 전 값을
+                모델: {meta.model} · 추정 비용 ₩{meta.costKrw.toLocaleString()}
+                {meta.aliasMatched > 0 && ` · 기억으로 매칭 ${meta.aliasMatched}건`} · 저장 전 값을
                 확인하세요.
               </p>
             )}
+            <p className="text-[11px] text-muted-foreground">
+              ※ 저장 시, 확정한 (바이어 표현 → 제품) 매칭을 기억해 다음 같은 바이어 주문서에서 더
+              정확히 매칭합니다.
+            </p>
           </div>
         )}
 

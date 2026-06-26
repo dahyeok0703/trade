@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-import { env } from "@/lib/env";
+import { env, isPreview } from "@/lib/env";
 import type { Database } from "@/lib/supabase/database.types";
 
 /** Routes under (app) require authentication. */
@@ -23,6 +23,22 @@ const AUTH_PREFIXES = ["/login", "/signup", "/reset-password"];
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+
+  // Backend-less preview: no session refresh, no auth network call. Public
+  // routes pass through; protected routes redirect to /login.
+  if (isPreview) {
+    const { pathname } = request.nextUrl;
+    const isProtected = PROTECTED_PREFIXES.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+    if (isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
 
   const supabase = createServerClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,

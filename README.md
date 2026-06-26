@@ -49,8 +49,12 @@
 
 > `https://stackblitz.com/github/dahyeok0703/trade/tree/<브랜치>` 형식입니다.
 
-`.stackblitzrc`가 부팅용 **플레이스홀더 환경변수**를 주입하고 `pnpm dev`로 띄웁니다.
-StackBlitz는 브라우저 WebContainer라 **Supabase(Postgres·Auth)는 실행되지 않습니다.**
+`.stackblitzrc`가 부팅용 **플레이스홀더 환경변수**(`NEXT_PUBLIC_PREVIEW=1` 포함)를 주입하고
+`pnpm dev`로 띄웁니다. StackBlitz는 브라우저 WebContainer라 **Supabase(Postgres·Auth)는
+실행되지 않습니다.** 프리뷰 모드에서는 공개 페이지가 요청 스코프 `cookies()`를 건너뛰고
+**정적으로 렌더**되어, WebContainer의 불안정한 AsyncLocalStorage로 인한 런타임 오류
+(`workUnitAsyncStorage`)를 피합니다. 보호 라우트는 `/login`으로 리다이렉트됩니다.
+(이 플래그는 프리뷰 전용 — 실제 배포에는 설정하지 않습니다. 없으면 평소대로 동작.)
 
 - ✅ **바로 보이는 것**: 랜딩(`/`)·요금제(`/pricing`)·약관/개인정보/환불(`/terms`·`/privacy`·`/refund`),
   전체 UI·디자인 시스템·반응형, 라우팅, 빌드/타입 동작.

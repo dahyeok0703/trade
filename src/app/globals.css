@@ -104,6 +104,11 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
+    /* Korean line-breaking: keep words whole (no breaking 인보이스 → 인보이/스),
+       only break at spaces/punctuation. overflow-wrap lets an over-long token
+       (URL, long unspaced string) wrap as a last resort instead of overflowing. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
   /* Tabular numerals make trade data tables align cleanly. */
   .tabular-nums {
